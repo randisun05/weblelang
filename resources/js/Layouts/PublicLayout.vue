@@ -1,0 +1,96 @@
+<script setup>
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import FlashMessages from '@/Components/FlashMessages.vue';
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const open = ref(false);
+
+const nav = [
+    { label: 'Beranda', route: 'home' },
+    { label: 'Jadwal Lelang', route: 'auctions.index' },
+    { label: 'Cara Kerja', route: 'how-it-works' },
+];
+
+const logout = () => router.post(route('logout'));
+</script>
+
+<template>
+    <div class="flex min-h-screen flex-col">
+        <FlashMessages />
+        <header class="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur">
+            <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
+                <Link :href="route('home')" class="flex items-center gap-2">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-lg">🔨</span>
+                    <span class="font-display text-xl font-extrabold text-ink">Web<span class="text-brand-600">Lelang</span></span>
+                </Link>
+
+                <nav class="hidden items-center gap-1 md:flex">
+                    <Link v-for="item in nav" :key="item.route" :href="route(item.route)"
+                        class="rounded-lg px-3 py-2 text-sm font-medium"
+                        :class="route().current(item.route) ? 'bg-stone-100 text-ink' : 'text-stone-600 hover:text-ink'">
+                        {{ item.label }}
+                    </Link>
+                </nav>
+
+                <div class="hidden items-center gap-2 md:flex">
+                    <template v-if="user">
+                        <Link v-if="user.is_backoffice" :href="route('admin.dashboard')" class="btn-dark btn-sm">Panel Admin</Link>
+                        <template v-else>
+                            <Link :href="route('user.dashboard')" class="btn-outline btn-sm">Akun Saya</Link>
+                        </template>
+                        <button class="btn-sm btn text-stone-500 hover:text-ink" @click="logout">Keluar</button>
+                    </template>
+                    <template v-else>
+                        <Link :href="route('login')" class="btn-outline btn-sm">Masuk</Link>
+                        <Link :href="route('register')" class="btn-primary btn-sm">Daftar Peserta</Link>
+                    </template>
+                </div>
+
+                <button class="rounded-lg p-2 md:hidden" aria-label="Menu" @click="open = !open">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+            </div>
+            <div v-if="open" class="border-t border-stone-200 bg-white px-4 py-3 md:hidden">
+                <Link v-for="item in nav" :key="item.route" :href="route(item.route)" class="block rounded-lg px-3 py-2 text-sm">{{ item.label }}</Link>
+                <div class="mt-2 flex gap-2 border-t border-stone-100 pt-3">
+                    <template v-if="user">
+                        <Link :href="user.is_backoffice ? route('admin.dashboard') : route('user.dashboard')" class="btn-outline btn-sm flex-1">
+                            {{ user.is_backoffice ? 'Panel Admin' : 'Akun Saya' }}
+                        </Link>
+                        <button class="btn-outline btn-sm" @click="logout">Keluar</button>
+                    </template>
+                    <template v-else>
+                        <Link :href="route('login')" class="btn-outline btn-sm flex-1">Masuk</Link>
+                        <Link :href="route('register')" class="btn-primary btn-sm flex-1">Daftar</Link>
+                    </template>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1">
+            <slot />
+        </main>
+
+        <footer class="mt-16 bg-ink text-stone-300">
+            <div class="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-3">
+                <div>
+                    <p class="font-display text-xl font-extrabold text-white">Web<span class="text-brand-400">Lelang</span></p>
+                    <p class="mt-2 text-sm text-stone-400">Lelang online barang titipan yang aman, transparan, dan mudah diikuti dari mana saja.</p>
+                </div>
+                <div class="text-sm">
+                    <p class="mb-2 font-semibold text-white">Jelajahi</p>
+                    <Link :href="route('auctions.index')" class="block py-1 hover:text-white">Jadwal lelang</Link>
+                    <Link :href="route('how-it-works')" class="block py-1 hover:text-white">Cara ikut lelang</Link>
+                    <Link :href="route('how-it-works') + '#titip'" class="block py-1 hover:text-white">Titip barang untuk dilelang</Link>
+                </div>
+                <div class="text-sm">
+                    <p class="mb-2 font-semibold text-white">Keamanan</p>
+                    <p class="text-stone-400">Peserta terverifikasi KTP · Riwayat penawaran tidak dapat diubah · Pembayaran via Midtrans</p>
+                </div>
+            </div>
+            <div class="border-t border-white/10 py-4 text-center text-xs text-stone-500">© {{ new Date().getFullYear() }} {{ $page.props.app.name }}</div>
+        </footer>
+    </div>
+</template>
