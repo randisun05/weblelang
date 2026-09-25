@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Consignor;
 use App\Models\Item;
 use App\Support\Present;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,6 +26,8 @@ class ConsignorPortalController extends Controller
             'items' => fn ($q) => $q->latest()->with('images', 'currentLot.auction:id,title,slug,status,method'),
             'settlements' => fn ($q) => $q->latest()->with('invoice.lot.item:id,title'),
         ]);
+
+        Seo::set(title: 'Portal Penitip', noindex: true);
 
         return Inertia::render('Public/ConsignorPortal', [
             'consignor' => [

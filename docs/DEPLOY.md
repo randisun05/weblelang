@@ -109,3 +109,6 @@ Uji manual: `php artisan backup:run` lalu `php artisan backup:list`.
 - [ ] Queue worker & scheduler berjalan — `/health` mengembalikan `200`.
 - [ ] Backup berjalan, tersimpan di luar server, dan restore sudah diuji.
 - [ ] Uptime monitor & Sentry aktif; email SMTP terkirim (uji lupa kata sandi).
+- [ ] `APP_URL` benar (dipakai untuk link sitemap, Open Graph, dan teks watermark); daftarkan
+      `https://domainanda/sitemap.xml` di Google Search Console.
+- [ ] Uji preview link lot di WhatsApp / Facebook Sharing Debugger.

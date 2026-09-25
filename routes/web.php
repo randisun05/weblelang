@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', Public\HomeController::class)->name('home');
+Route::get('/sitemap.xml', [Public\SeoController::class, 'sitemap'])->name('seo.sitemap');
+Route::get('/robots.txt', [Public\SeoController::class, 'robots'])->name('seo.robots');
 Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
 Route::get('/cara-kerja', [Public\PageController::class, 'howItWorks'])->name('how-it-works');
 Route::get('/titip-barang', [Public\ConsignmentRequestController::class, 'create'])->name('consign.create');

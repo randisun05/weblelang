@@ -79,7 +79,7 @@ class ConsignmentIntakeService
             foreach ($request->photos as $i => $path) {
                 if (Storage::disk('local')->exists($path)) {
                     $item->images()->create([
-                        'path' => $this->images->storeFromPath(Storage::disk('local')->path($path), 'items/'.$item->id),
+                        'path' => $this->images->storeFromPath(Storage::disk('local')->path($path), 'items/'.$item->id, watermark: true),
                         'sort_order' => $i + 1,
                     ]);
                 }

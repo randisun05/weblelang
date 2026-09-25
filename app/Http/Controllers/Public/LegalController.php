@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
+use App\Support\Seo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,11 +14,15 @@ class LegalController extends Controller
 {
     public function terms(): Response
     {
+        Seo::set(title: 'Syarat & Ketentuan');
+
         return Inertia::render('Public/Legal/Terms', $this->props() + ['version' => config('legal.terms_version')]);
     }
 
     public function privacy(): Response
     {
+        Seo::set(title: 'Kebijakan Privasi');
+
         return Inertia::render('Public/Legal/Privacy', $this->props() + ['version' => config('legal.privacy_version')]);
     }
 

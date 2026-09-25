@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Seo;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -14,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->scoped(Seo::class);
     }
 
     public function boot(): void

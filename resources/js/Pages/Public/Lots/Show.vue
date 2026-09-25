@@ -143,7 +143,7 @@ const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { p
 </script>
 
 <template>
-    <Head :title="lot.item.title" />
+    <Head :title="`Lot ${lot.lot_number}: ${lot.item.title}`" />
     <PublicLayout>
         <div class="mx-auto max-w-7xl px-4 py-6">
             <nav class="mb-4 text-sm text-stone-500">

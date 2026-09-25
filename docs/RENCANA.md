@@ -361,3 +361,15 @@ Catatan penyesuaian dari rencana:
 **Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), Laravel Reverb (websocket — mempercepat lelang live),
 reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
 **Fase 3:** buy now, live auction dengan juru lelang, PWA, multi-tenant, analitik harga.
+
+**Persiapan go-live & fitur pertumbuhan (sudah dikerjakan):**
+
+- Legal: S&K + Kebijakan Privasi (UU PDP), persetujuan tercatat per versi, ekspor data pribadi.
+- `php artisan payments:check` + panduan uji sandbox (`docs/UJI-SANDBOX.md`).
+- Paket deploy: Docker (FrankenPHP, HTTPS otomatis) & VPS (Nginx + Supervisor), backup terenkripsi terjadwal,
+  `/health` + heartbeat queue/scheduler, Sentry (`docs/DEPLOY.md`).
+- Form titip barang online + meja tinjau admin (terima → penitip & barang dibuat otomatis).
+- Real-time Laravel Reverb (sinyal tanpa data harga; bid tertutup tidak disiarkan) + notifikasi broadcast.
+- Turnstile, verifikasi email wajib sebelum menawar, deteksi indikasi shill bidding.
+- SEO: meta/Open Graph server-side, JSON-LD Product/Event, sitemap.xml, robots.txt, watermark foto barang.
+- Total 126 tes otomatis.

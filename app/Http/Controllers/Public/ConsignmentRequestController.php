@@ -8,6 +8,7 @@ use App\Models\ConsignmentRequest;
 use App\Models\Item;
 use App\Services\ConsignmentIntakeService;
 use App\Support\Present;
+use App\Support\Seo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,8 @@ class ConsignmentRequestController extends Controller
     public function create(Request $request): Response
     {
         $user = $request->user();
+
+        Seo::set(title: 'Titipkan Barang untuk Dilelang', description: 'Ajukan barang Anda untuk dilelang secara online: isi formulir, unggah foto, dan tim kami akan menghubungi Anda.');
 
         return Inertia::render('Public/Consign/Create', [
             'categories' => Category::orderBy('name')->get(['id', 'name', 'icon']),
@@ -64,6 +67,8 @@ class ConsignmentRequestController extends Controller
     public function status(ConsignmentRequest $consignmentRequest): Response
     {
         $r = $consignmentRequest->load('category:id,name');
+
+        Seo::set(title: 'Status Pengajuan', noindex: true);
 
         return Inertia::render('Public/Consign/Status', [
             'request' => [
