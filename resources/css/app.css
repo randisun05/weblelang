@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+@source '../**/*.vue';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-display: 'Playfair Display', ui-serif, Georgia, serif;
+
+    /* Warna brand: emas lelang */
+    --color-brand-50: #fffbeb;
+    --color-brand-100: #fef3c7;
+    --color-brand-200: #fde68a;
+    --color-brand-300: #fcd34d;
+    --color-brand-400: #fbbf24;
+    --color-brand-500: #f59e0b;
+    --color-brand-600: #d97706;
+    --color-brand-700: #b45309;
+    --color-brand-800: #92400e;
+    --color-brand-900: #78350f;
+    --color-ink: #1c1917;
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+    @apply btn bg-brand-500 text-ink shadow-sm hover:bg-brand-400;
+}
+@utility btn-dark {
+    @apply btn bg-ink text-white hover:bg-stone-700;
+}
+@utility btn-outline {
+    @apply btn border border-stone-300 bg-white text-stone-700 hover:bg-stone-50;
+}
+@utility btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-500;
+}
+@utility btn-sm {
+    @apply px-3 py-1.5 text-xs;
+}
+@utility card {
+    @apply rounded-2xl border border-stone-200 bg-white shadow-sm;
+}
+@utility input {
+    @apply block w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none;
+}
+@utility label {
+    @apply mb-1 block text-sm font-medium text-stone-700;
+}
+@utility tbl {
+    @apply min-w-full divide-y divide-stone-200 text-sm;
+
+    & th {
+        @apply bg-stone-50 px-4 py-3 text-left text-xs font-semibold tracking-wide text-stone-500 uppercase;
+    }
+    & td {
+        @apply px-4 py-3 align-middle text-stone-700;
+    }
+}
+@utility link {
+    @apply font-medium text-brand-700 hover:text-brand-600 hover:underline;
+}
+
+@keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+}
+.animate-live {
+    animation: pulse-live 1.4s ease-in-out infinite;
+}
