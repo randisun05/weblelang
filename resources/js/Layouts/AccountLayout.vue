@@ -6,6 +6,7 @@ defineProps({ title: String });
 const tabs = [
     { label: 'Ringkasan', route: 'user.dashboard' },
     { label: 'Invoice', route: 'user.invoices.*', href: 'user.invoices.index' },
+    { label: 'Notifikasi', route: 'user.notifications.*', href: 'user.notifications.index' },
     { label: 'Profil & KYC', route: 'user.profile' },
 ];
 </script>

@@ -5,12 +5,14 @@ namespace App\Http\Controllers\User;
 use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Services\DocumentService;
 use App\Services\ImageService;
 use App\Services\MidtransService;
 use App\Support\Present;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -55,6 +57,7 @@ class InvoiceController extends Controller
                 'delivered_at' => $invoice->delivered_at?->toIso8601String(),
                 'payment_method' => $invoice->payment_method,
                 'has_proof' => (bool) $invoice->payment_proof,
+                'cancel_reason' => $invoice->cancel_reason,
                 'status' => Present::status($invoice->status),
             ],
             'midtrans' => [
@@ -96,6 +99,13 @@ class InvoiceController extends Controller
         ])->save();
 
         return back()->with('success', 'Bukti transfer terkirim. Admin akan mengonfirmasi pembayaran Anda.');
+    }
+
+    public function pdf(Request $request, Invoice $invoice, DocumentService $documents): HttpResponse
+    {
+        $this->authorizeOwner($request, $invoice);
+
+        return $documents->invoice($invoice);
     }
 
     private function authorizeOwner(Request $request, Invoice $invoice): void

@@ -17,6 +17,9 @@ Route::get('/lelang/{auction:slug}', [Public\AuctionController::class, 'show'])-
 Route::get('/lot/{lot}', [Public\LotController::class, 'show'])->name('lots.show');
 Route::get('/lot/{lot}/state', [Public\LotController::class, 'state'])->middleware('throttle:120,1')->name('lots.state');
 
+Route::get('/portal-penitip/{consignor}', Public\ConsignorPortalController::class)
+    ->middleware(['signed', 'throttle:30,1'])->name('consignor.portal');
+
 Route::post('/payments/midtrans/notification', Public\MidtransNotificationController::class)
     ->middleware('throttle:60,1')->name('payments.midtrans.notification');
 
@@ -37,8 +40,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/profil', [User\ProfileController::class, 'update'])->name('profile.update');
         Route::post('/profil/kyc', [User\ProfileController::class, 'submitKyc'])->middleware('throttle:uploads')->name('profile.kyc');
 
+        Route::get('/notifikasi', [User\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifikasi/baca-semua', [User\NotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::get('/notifikasi/{id}', [User\NotificationController::class, 'open'])->name('notifications.open');
+
         Route::get('/invoice', [User\InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('/invoice/{invoice}', [User\InvoiceController::class, 'show'])->name('invoices.show');
+        Route::get('/invoice/{invoice}/pdf', [User\InvoiceController::class, 'pdf'])->name('invoices.pdf');
         Route::post('/invoice/{invoice}/snap', [User\InvoiceController::class, 'snap'])->middleware('throttle:10,1')->name('invoices.snap');
         Route::post('/invoice/{invoice}/bukti', [User\InvoiceController::class, 'uploadProof'])->middleware('throttle:uploads')->name('invoices.proof');
     });
@@ -54,6 +62,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
     Route::get('/keamanan/2fa', [Admin\SecurityController::class, 'twoFactor'])->name('security.two-factor');
 
     // Operasional gudang: staf, admin, super admin.
+    Route::post('/penitip/{consignor}/reset-portal', [Admin\ConsignorController::class, 'resetPortal'])->name('consignors.reset-portal');
     Route::resource('penitip', Admin\ConsignorController::class)->names('consignors')->parameters(['penitip' => 'consignor']);
     Route::resource('barang', Admin\ItemController::class)->names('items')->parameters(['barang' => 'item']);
     Route::post('/barang/{item}/status', [Admin\ItemController::class, 'transition'])->name('items.transition');
@@ -74,6 +83,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
         Route::post('/lelang/{auction}/tarik', [Admin\AuctionController::class, 'unpublish'])->name('auctions.unpublish');
 
         Route::post('/pendaftaran/{registration}', [Admin\RegistrationController::class, 'decide'])->name('registrations.decide');
+        Route::post('/pendaftaran/{registration}/jaminan', [Admin\RegistrationController::class, 'settleDeposit'])->name('registrations.deposit');
         Route::get('/pendaftaran/{registration}/bukti', [Admin\RegistrationController::class, 'proof'])->name('registrations.proof');
 
         Route::get('/peserta', [Admin\BidderController::class, 'index'])->name('bidders.index');
@@ -88,10 +98,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
         Route::post('/invoice/{invoice}/batal', [Admin\InvoiceController::class, 'cancel'])->name('invoices.cancel');
         Route::post('/invoice/{invoice}/serahkan', [Admin\InvoiceController::class, 'deliver'])->name('invoices.deliver');
         Route::get('/invoice/{invoice}/bukti', [Admin\InvoiceController::class, 'proof'])->name('invoices.proof');
+        Route::get('/invoice/{invoice}/pdf', [Admin\InvoiceController::class, 'pdf'])->name('invoices.pdf');
+        Route::get('/invoice/{invoice}/bast', [Admin\InvoiceController::class, 'handover'])->name('invoices.handover');
 
         Route::get('/settlement', [Admin\SettlementController::class, 'index'])->name('settlements.index');
         Route::post('/settlement/{settlement}/bayar', [Admin\SettlementController::class, 'markPaid'])->name('settlements.paid');
         Route::get('/settlement/{settlement}/bukti', [Admin\SettlementController::class, 'proof'])->name('settlements.proof');
+
+        Route::get('/laporan', [Admin\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/laporan/penjualan.xlsx', [Admin\ReportController::class, 'sales'])->name('reports.sales');
+        Route::get('/laporan/settlement.xlsx', [Admin\ReportController::class, 'settlements'])->name('reports.settlements');
 
         Route::get('/log-audit', [Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
     });

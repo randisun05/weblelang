@@ -9,7 +9,7 @@ import Pagination from '@/Components/Pagination.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { dateTime, money } from '@/lib/format';
 
-const props = defineProps({ auction: Object, registration: Object, lots: Object, categories: Array, filters: Object });
+const props = defineProps({ auction: Object, registration: Object, deposit: Object, lots: Object, categories: Array, filters: Object });
 
 const filter = reactive({ q: props.filters.q ?? '', category: props.filters.category ?? '', sort: props.filters.sort ?? 'lot' });
 let timer;
@@ -45,11 +45,12 @@ const register = () => reg.post(route('auctions.register', props.auction.slug), 
             </div>
 
             <!-- Pendaftaran jaminan -->
-            <div v-if="auction.deposit_amount && auction.status.value !== 'closed'" class="mx-auto max-w-7xl px-4 pb-6">
+            <div v-if="auction.deposit_amount && (auction.status.value !== 'closed' || registration)" class="mx-auto max-w-7xl px-4 pb-6">
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
                     <template v-if="!$page.props.auth.user">Sesi ini mensyaratkan uang jaminan. <a :href="route('login')" class="link">Masuk</a> untuk mendaftar.</template>
                     <template v-else-if="registration && registration.value !== 'rejected'">
                         Status pendaftaran Anda: <StatusBadge :status="registration" />
+                        <StatusBadge v-if="deposit" :status="deposit" class="ml-1" />
                     </template>
                     <form v-else class="flex flex-wrap items-center gap-3" @submit.prevent="register">
                         <span>Transfer jaminan <b>{{ money(auction.deposit_amount) }}</b> lalu unggah bukti transfer:</span>

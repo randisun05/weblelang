@@ -38,6 +38,12 @@ const logout = () => router.post(route('logout'));
                     <template v-if="user">
                         <Link v-if="user.is_backoffice" :href="route('admin.dashboard')" class="btn-dark btn-sm">Panel Admin</Link>
                         <template v-else>
+                            <Link :href="route('user.notifications.index')" class="relative rounded-full p-2 text-lg hover:bg-stone-100" title="Notifikasi">
+                                🔔
+                                <span v-if="$page.props.auth.unread_notifications" class="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold text-white">
+                                    {{ $page.props.auth.unread_notifications > 9 ? '9+' : $page.props.auth.unread_notifications }}
+                                </span>
+                            </Link>
                             <Link :href="route('user.dashboard')" class="btn-outline btn-sm">Akun Saya</Link>
                         </template>
                         <button class="btn-sm btn text-stone-500 hover:text-ink" @click="logout">Keluar</button>

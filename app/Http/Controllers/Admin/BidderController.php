@@ -6,6 +6,7 @@ use App\Enums\KycStatus;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\KycReviewedNotification;
 use App\Services\AuditLogger;
 use App\Support\Present;
 use Illuminate\Http\RedirectResponse;
@@ -89,6 +90,7 @@ class BidderController extends Controller
         ])->save();
 
         AuditLogger::log('kyc.'.$data['decision'], $user, ['note' => $data['note'] ?? null]);
+        $user->notify(new KycReviewedNotification($user));
 
         return back()->with('success', $data['decision'] === 'verified' ? 'Peserta terverifikasi.' : 'Pengajuan KYC ditolak.');
     }

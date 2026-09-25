@@ -57,6 +57,11 @@ const deliver = () => confirm('Catat bahwa barang sudah diserahkan ke pemenang?'
                     </template>
                     <button v-else-if="invoice.status.value === 'paid' && !invoice.delivered_at" class="btn-primary w-full" @click="deliver">📦 Catat serah terima barang</button>
                     <p v-else class="text-sm text-stone-500">Tidak ada tindakan tersisa.</p>
+                    <p v-if="invoice.cancel_reason" class="text-sm text-stone-600">Alasan batal: {{ invoice.cancel_reason }}</p>
+                    <div class="flex gap-2 border-t border-stone-100 pt-3">
+                        <a :href="route('admin.invoices.pdf', invoice.id)" class="btn-outline btn-sm flex-1">⬇ Invoice PDF</a>
+                        <a v-if="invoice.status.value === 'paid'" :href="route('admin.invoices.handover', invoice.id)" class="btn-outline btn-sm flex-1">⬇ Berita acara</a>
+                    </div>
                 </section>
                 <section v-if="invoice.settlement" class="card p-6 text-sm">
                     <p class="text-stone-500">Settlement penitip</p>

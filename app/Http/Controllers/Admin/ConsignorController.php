@@ -59,6 +59,8 @@ class ConsignorController extends Controller
                 'bank_name' => $consignor->bank_name, 'bank_account' => $consignor->maskedBankAccount(),
                 'bank_holder' => $consignor->bank_holder, 'commission_rate' => $consignor->commission_rate,
                 'notes' => $consignor->notes,
+                'portal_url' => $consignor->portalUrl(),
+                'portal_days' => (int) config('auction.consignor_portal_days', 30),
             ],
             'items' => $consignor->items->map(fn (Item $i) => [
                 'id' => $i->id, 'code' => $i->code, 'title' => $i->title,
@@ -74,6 +76,15 @@ class ConsignorController extends Controller
                 'net_pending' => $consignor->settlements->filter(fn ($s) => $s->status === SettlementStatus::Pending)->sum('net_amount'),
             ],
         ]);
+    }
+
+    /** Mencabut semua link portal lama dan membuat yang baru. */
+    public function resetPortal(Consignor $consignor): RedirectResponse
+    {
+        $consignor->resetPortalLink();
+        AuditLogger::log('consignor.portal_reset', $consignor);
+
+        return back()->with('success', 'Link portal lama dicabut. Bagikan link baru ke penitip.');
     }
 
     public function edit(Consignor $consignor): Response

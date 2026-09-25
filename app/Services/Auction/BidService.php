@@ -9,6 +9,7 @@ use App\Models\AutoBid;
 use App\Models\Bid;
 use App\Models\Lot;
 use App\Models\User;
+use App\Notifications\OutbidNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,7 @@ class BidService
             $now = Carbon::now();
 
             $this->assertCanBid($lot, $user, $now);
+            $previousLeaderId = $lot->leader_id;
 
             if ($maxAmount !== null && $maxAmount < $amount) {
                 throw new BidException('Batas auto-bid tidak boleh lebih kecil dari nominal penawaran.');
@@ -48,7 +50,7 @@ class BidService
                 $this->upsertAutoBid($lot, $user, $maxAmount);
                 $this->resolveProxies($lot, $user, $maxAmount, $now, $meta);
 
-                return $this->finish($lot, $now);
+                return $this->finish($lot, $now, $previousLeaderId);
             }
 
             $minimum = $this->increments->minimumNextBid($lot);
@@ -72,7 +74,7 @@ class BidService
 
             $this->resolveProxies($lot, $user, $userMax, $now, $meta);
 
-            return $this->finish($lot, $now);
+            return $this->finish($lot, $now, $previousLeaderId);
         });
     }
 
@@ -196,8 +198,8 @@ class BidService
         return $bid;
     }
 
-    /** Anti-sniping + simpan + siarkan. */
-    private function finish(Lot $lot, Carbon $now): Lot
+    /** Anti-sniping + simpan + siarkan + beri tahu pemimpin sebelumnya yang terlampaui. */
+    private function finish(Lot $lot, Carbon $now, ?int $previousLeaderId): Lot
     {
         $window = (int) $lot->auction->anti_snipe_minutes;
 
@@ -213,6 +215,10 @@ class BidService
         $lot->save();
 
         BidPlaced::dispatch($lot);
+
+        if ($previousLeaderId && $previousLeaderId !== $lot->leader_id) {
+            User::find($previousLeaderId)?->notify(new OutbidNotification($lot, $lot->current_price));
+        }
 
         return $lot;
     }

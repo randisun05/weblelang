@@ -55,7 +55,10 @@ const uploadProof = () => proof.post(route('user.invoices.proof', props.invoice.
                         <StatusBadge :status="invoice.status" />
                         <h2 class="mt-2 text-lg font-bold text-ink">{{ invoice.title }}</h2>
                         <p class="text-sm text-stone-500">{{ invoice.auction }}</p>
-                        <Link :href="route('lots.show', invoice.lot_id)" class="link text-sm">Lihat lot</Link>
+                        <div class="flex gap-4 text-sm">
+                            <Link :href="route('lots.show', invoice.lot_id)" class="link">Lihat lot</Link>
+                            <a :href="route('user.invoices.pdf', invoice.id)" class="link">⬇ Unduh PDF</a>
+                        </div>
                     </div>
                 </div>
                 <dl class="mt-6 space-y-2 text-sm">
@@ -64,6 +67,9 @@ const uploadProof = () => proof.post(route('user.invoices.proof', props.invoice.
                     <div v-if="invoice.admin_fee" class="flex justify-between"><dt class="text-stone-500">Biaya admin</dt><dd>{{ money(invoice.admin_fee) }}</dd></div>
                     <div class="flex justify-between border-t border-stone-200 pt-3 text-lg font-bold text-ink"><dt>Total</dt><dd>{{ money(invoice.total) }}</dd></div>
                 </dl>
+                <p v-if="invoice.status.value === 'cancelled'" class="mt-6 rounded-xl bg-stone-100 p-4 text-sm text-stone-700">
+                    Invoice dibatalkan: {{ invoice.cancel_reason || '-' }}
+                </p>
                 <p v-if="invoice.paid_at" class="mt-6 rounded-xl bg-green-50 p-4 text-sm text-green-800">
                     ✓ Lunas pada {{ dateTime(invoice.paid_at) }} via {{ invoice.payment_method }}.
                     <template v-if="invoice.delivered_at"> Barang diserahkan {{ dateTime(invoice.delivered_at) }}.</template>

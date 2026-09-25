@@ -91,6 +91,7 @@ class AuctionController extends Controller
             'registrations' => $auction->registrations->map(fn (AuctionRegistration $r) => [
                 'id' => $r->id, 'user' => $r->user->name, 'email' => $r->user->email,
                 'status' => Present::status($r->status), 'has_proof' => (bool) $r->deposit_proof,
+                'deposit' => $r->deposit_status ? Present::status($r->deposit_status) : null,
                 'created_at' => $r->created_at->toIso8601String(),
             ]),
             'availableItems' => Item::with('consignor:id,name')->where('status', ItemStatus::Approved)->orderBy('code')->get()

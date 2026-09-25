@@ -36,6 +36,20 @@ const cancelLot = async (lot) => {
     if (isConfirmed) router.post(route('admin.auctions.lots.cancel', [props.auction.id, lot.id]), { reason: value }, { preserveScroll: true });
 };
 const decide = (reg, decision) => router.post(route('admin.registrations.decide', reg.id), { decision }, { preserveScroll: true });
+const settleDeposit = async (reg, decision) => {
+    const forfeit = decision === 'forfeited';
+    const { isConfirmed, value } = await Swal.fire({
+        title: forfeit ? `Sita jaminan ${reg.user}?` : `Kembalikan jaminan ${reg.user}?`,
+        text: forfeit ? 'Gunakan hanya bila peserta wanprestasi.' : `Pastikan ${money(props.auction.deposit_amount)} sudah ditransfer kembali.`,
+        input: forfeit ? 'text' : undefined,
+        inputLabel: forfeit ? 'Alasan' : undefined,
+        inputValidator: forfeit ? (v) => (!v ? 'Alasan wajib diisi' : undefined) : undefined,
+        showCancelButton: true,
+        confirmButtonText: forfeit ? 'Sita jaminan' : 'Sudah dikembalikan',
+        confirmButtonColor: forfeit ? '#dc2626' : '#16a34a',
+    });
+    if (isConfirmed) router.post(route('admin.registrations.deposit', reg.id), { decision, note: value || null }, { preserveScroll: true });
+};
 </script>
 
 <template>
@@ -113,16 +127,23 @@ const decide = (reg, decision) => router.post(route('admin.registrations.decide'
         <template v-else>
             <div v-if="registrations.length" class="card overflow-x-auto">
                 <table class="tbl">
-                    <thead><tr><th>Peserta</th><th>Tanggal</th><th>Bukti</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Peserta</th><th>Tanggal</th><th>Bukti</th><th>Status</th><th>Jaminan</th><th></th></tr></thead>
                     <tbody class="divide-y divide-stone-100">
                         <tr v-for="r in registrations" :key="r.id">
                             <td>{{ r.user }}<br /><span class="text-xs text-stone-500">{{ r.email }}</span></td>
                             <td class="text-xs">{{ dateTime(r.created_at) }}</td>
                             <td><a v-if="r.has_proof" :href="route('admin.registrations.proof', r.id)" target="_blank" class="link text-xs">Lihat bukti</a></td>
                             <td><StatusBadge :status="r.status" /></td>
+                            <td><StatusBadge v-if="r.deposit" :status="r.deposit" /></td>
                             <td class="space-x-2 text-right whitespace-nowrap">
-                                <button v-if="r.status.value !== 'approved'" class="btn-primary btn-sm" @click="decide(r, 'approved')">Setujui</button>
-                                <button v-if="r.status.value !== 'rejected'" class="btn-outline btn-sm" @click="decide(r, 'rejected')">Tolak</button>
+                                <template v-if="r.deposit?.value === 'held'">
+                                    <button class="btn-outline btn-sm" @click="settleDeposit(r, 'refunded')">Kembalikan</button>
+                                    <button class="btn-outline btn-sm text-red-600" @click="settleDeposit(r, 'forfeited')">Sita</button>
+                                </template>
+                                <template v-if="!r.deposit || r.deposit.value === 'held'">
+                                    <button v-if="r.status.value !== 'approved'" class="btn-primary btn-sm" @click="decide(r, 'approved')">Setujui</button>
+                                    <button v-if="r.status.value !== 'rejected'" class="btn-outline btn-sm" @click="decide(r, 'rejected')">Tolak</button>
+                                </template>
                             </td>
                         </tr>
                     </tbody>

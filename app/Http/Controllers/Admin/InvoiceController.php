@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Services\DocumentService;
 use App\Services\InvoiceService;
 use App\Support\Present;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -59,6 +61,7 @@ class InvoiceController extends Controller
                 'delivered_at' => $invoice->delivered_at?->toIso8601String(),
                 'payment_method' => $invoice->payment_method, 'payment_ref' => $invoice->payment_ref,
                 'has_proof' => (bool) $invoice->payment_proof,
+                'cancel_reason' => $invoice->cancel_reason,
                 'status' => Present::status($invoice->status),
                 'settlement' => $invoice->settlement ? [
                     'number' => $invoice->settlement->number, 'net_amount' => $invoice->settlement->net_amount,
@@ -103,6 +106,19 @@ class InvoiceController extends Controller
         }
 
         return back()->with('success', 'Barang tercatat sudah diserahkan ke pemenang.');
+    }
+
+    public function pdf(Invoice $invoice, DocumentService $documents): HttpResponse
+    {
+        return $documents->invoice($invoice);
+    }
+
+    /** Berita acara serah terima — hanya untuk invoice yang sudah lunas. */
+    public function handover(Invoice $invoice, DocumentService $documents): HttpResponse
+    {
+        abort_unless($invoice->status === InvoiceStatus::Paid, 422, 'Berita acara hanya untuk invoice yang sudah lunas.');
+
+        return $documents->handover($invoice);
     }
 
     public function proof(Invoice $invoice): StreamedResponse

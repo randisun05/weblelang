@@ -40,6 +40,15 @@ return [
     // Batas waktu pembayaran invoice (jam).
     'invoice_due_hours' => (int) env('AUCTION_INVOICE_DUE_HOURS', 72),
 
+    // Invoice yang lewat jatuh tempo dibatalkan otomatis (wanprestasi) oleh scheduler.
+    'auto_cancel_overdue' => (bool) env('AUCTION_AUTO_CANCEL_OVERDUE', true),
+
+    // Kirim notifikasi "segera berakhir" X menit sebelum lot tutup (0 = mati).
+    'ending_soon_minutes' => (int) env('AUCTION_ENDING_SOON_MINUTES', 15),
+
+    // Masa berlaku link portal penitip (hari).
+    'consignor_portal_days' => (int) env('AUCTION_CONSIGNOR_PORTAL_DAYS', 30),
+
     // Anti-sniping default untuk sesi baru (menit).
     'anti_snipe_minutes' => 3,
     'extend_minutes' => 3,

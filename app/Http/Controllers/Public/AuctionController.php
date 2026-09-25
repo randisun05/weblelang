@@ -77,6 +77,7 @@ class AuctionController extends Controller
                 'status' => Present::status($auction->status),
             ],
             'registration' => $registration ? Present::status($registration->status) : null,
+            'deposit' => $registration?->deposit_status ? Present::status($registration->deposit_status) : null,
             'lots' => $lots,
             'categories' => Category::orderBy('name')->get(['id', 'name']),
             'filters' => $filters,

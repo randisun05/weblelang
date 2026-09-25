@@ -16,6 +16,9 @@ Full plan/research: `docs/RENCANA.md`. Stack mirrors `randisun05/asprov1` (web-a
 - `app/Support/Present.php` builds Inertia props — never send `reserve_price` to bidders.
 - Money is integer rupiah everywhere. Status enums in `app/Enums` (label/color used by `StatusBadge.vue`).
 - Business rules in `config/auction.php`.
+- Notifications (`app/Notifications`) extend `AuctionNotification` (mail + database, queued after commit) —
+  production needs `php artisan queue:work`. PDFs via `DocumentService` (dompdf, views in `resources/views/pdf`),
+  Excel via `app/Exports` (maatwebsite/excel 4). Consignor portal = temporary signed URL + revocable `portal_nonce`.
 
 ## Conventions
 - State-changing actions are POST/PUT/DELETE, authorized server-side (`role:` middleware), logged via `AuditLogger`.

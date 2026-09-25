@@ -35,6 +35,16 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
   settlement (tandai transfer + bukti); **log audit**; manajemen petugas (super admin).
 - Peran: `super_admin`, `admin` (2FA wajib), `staff` (gudang), `bidder`.
 
+**Fase 2 (sebagian, sudah diimplementasikan)**
+- **Notifikasi** email + lonceng in-app: bid terlampaui, lot pantauan/ditawar segera berakhir, menang lelang,
+  invoice lunas/dibatalkan, hasil KYC, jaminan dikembalikan/hangus. Dikirim lewat antrean (queue).
+- **Invoice kedaluwarsa dibatalkan otomatis** oleh scheduler (wanprestasi) → barang siap dilelang ulang,
+  jaminan pemenang pada sesi itu otomatis hangus.
+- **Uang jaminan**: status ditahan → dikembalikan / hangus, dikelola dari halaman sesi.
+- **PDF**: invoice (peserta & admin) dan berita acara serah terima barang (BAST).
+- **Laporan & ekspor Excel**: ringkasan periode, Excel penjualan dan Excel settlement (siap untuk daftar transfer).
+- **Portal penitip** tanpa login: link bertanda tangan, kedaluwarsa, dan bisa dicabut; bisa dikirim via WhatsApp.
+
 ## Menjalankan secara lokal
 
 ```bash
@@ -46,7 +56,8 @@ touch database/database.sqlite      # atau atur DB MySQL di .env
 php artisan migrate --seed
 php artisan storage:link
 php artisan serve                   # http://127.0.0.1:8000
-php artisan schedule:work           # (terminal lain) buka/tutup lot tiap menit
+php artisan schedule:work           # (terminal lain) buka/tutup lot, pengingat, invoice kedaluwarsa
+php artisan queue:work              # (terminal lain) kirim notifikasi email & in-app
 ```
 
 Akun demo (password `password`, **ganti di production**):
@@ -68,8 +79,9 @@ URL notifikasi Midtrans: `POST /payments/midtrans/notification`.
 ## Pengujian
 
 ```bash
-php artisan test          # 41 tes: mesin bid, proxy, anti-sniping, penutupan, invoice/settlement,
-                          # otorisasi, webhook Midtrans, alur admin end-to-end
+php artisan test          # 53 tes: mesin bid, proxy, anti-sniping, penutupan, invoice/settlement,
+                          # otorisasi, webhook Midtrans, alur admin end-to-end, notifikasi,
+                          # invoice kedaluwarsa, jaminan, PDF, Excel, portal penitip
 vendor/bin/pint --test    # gaya kode
 ```
 

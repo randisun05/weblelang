@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
                     'kyc_status' => $user->kyc_status->value,
                     'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
                 ] : null,
+                'unread_notifications' => fn () => $user?->unreadNotifications()->count() ?? 0,
             ],
         ]);
     }

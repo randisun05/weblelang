@@ -328,5 +328,15 @@ Catatan penyesuaian dari rencana:
 - Tes otomatis: 41 tes (mesin bid, proxy, anti-sniping, penutupan, invoice/settlement, otorisasi,
   webhook Midtrans, alur admin end-to-end).
 
-Belum dikerjakan (Fase 2+): notifikasi email/WA, refund jaminan otomatis, sealed bid, portal penitip,
-ekspor Excel/PDF, reCAPTCHA, deteksi *shill bidding* lanjutan, buy now, multi-tenant.
+**Fase 2 — sudah dikerjakan sebagian:**
+
+- Notifikasi email + in-app (bid terlampaui, segera berakhir, menang, invoice lunas/batal, KYC, jaminan).
+- Pembatalan otomatis invoice lewat jatuh tempo + jaminan pemenang otomatis hangus.
+- Status uang jaminan (ditahan → dikembalikan/hangus) — pengembalian dana tetap ditransfer manual.
+- PDF invoice & berita acara serah terima; laporan periode + ekspor Excel penjualan & settlement.
+- Portal penitip read-only via *signed URL* yang kedaluwarsa dan bisa dicabut.
+- Total 53 tes otomatis.
+
+**Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), refund jaminan otomatis via payment gateway,
+sealed bid, Laravel Reverb (websocket), reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
+**Fase 3:** buy now, live auction dengan juru lelang, PWA, multi-tenant, analitik harga.

@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\DepositStatus;
 use App\Enums\InvoiceStatus;
 use App\Enums\ItemStatus;
+use App\Models\AuctionRegistration;
 use App\Models\Invoice;
 use App\Models\Lot;
+use App\Notifications\InvoiceStatusNotification;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -56,12 +59,16 @@ class InvoiceService
             $this->settlements->createForInvoice($invoice);
 
             AuditLogger::log('invoice.paid', $invoice, ['method' => $method, 'ref' => $reference]);
+            $invoice->user->notify(new InvoiceStatusNotification($invoice));
 
             return $invoice;
         });
     }
 
-    /** Pembatalan karena wanprestasi: barang kembali siap dilelang ulang. */
+    /**
+     * Pembatalan karena wanprestasi: barang kembali siap dilelang ulang dan
+     * uang jaminan pemenang pada sesi tersebut (jika ada) dinyatakan hangus.
+     */
     public function cancel(Invoice $invoice, string $reason): void
     {
         DB::transaction(function () use ($invoice, $reason) {
@@ -71,11 +78,40 @@ class InvoiceService
                 throw new RuntimeException('Hanya invoice yang belum dibayar yang dapat dibatalkan.');
             }
 
-            $invoice->forceFill(['status' => InvoiceStatus::Cancelled])->save();
+            $invoice->forceFill(['status' => InvoiceStatus::Cancelled, 'cancel_reason' => $reason])->save();
             $invoice->lot->item->forceFill(['status' => ItemStatus::Approved])->save();
 
-            AuditLogger::log('invoice.cancelled', $invoice, ['reason' => $reason]);
+            $forfeited = AuctionRegistration::where('auction_id', $invoice->lot->auction_id)
+                ->where('user_id', $invoice->user_id)
+                ->where('deposit_status', DepositStatus::Held)
+                ->update(['deposit_status' => DepositStatus::Forfeited, 'deposit_settled_at' => now()]);
+
+            AuditLogger::log('invoice.cancelled', $invoice, ['reason' => $reason, 'deposit_forfeited' => (bool) $forfeited]);
+            $invoice->user->notify(new InvoiceStatusNotification($invoice));
         });
+    }
+
+    /** Membatalkan otomatis invoice yang lewat jatuh tempo (dijalankan scheduler). */
+    public function cancelOverdue(): int
+    {
+        if (! config('auction.auto_cancel_overdue', true)) {
+            return 0;
+        }
+
+        $count = 0;
+        Invoice::where('status', InvoiceStatus::Unpaid)
+            ->where('due_at', '<', now())
+            ->pluck('id')
+            ->each(function (int $id) use (&$count) {
+                try {
+                    $this->cancel(Invoice::findOrFail($id), 'Tidak dibayar sebelum jatuh tempo (otomatis)');
+                    $count++;
+                } catch (RuntimeException) {
+                    // Sudah dibayar/dibatalkan oleh proses lain di antara query dan lock.
+                }
+            });
+
+        return $count;
     }
 
     public function markDelivered(Invoice $invoice): void
