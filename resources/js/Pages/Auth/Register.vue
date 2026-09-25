@@ -31,7 +31,8 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
             <Field :error="form.errors.terms">
                 <label class="flex items-start gap-2 text-sm text-stone-600">
                     <input v-model="form.terms" type="checkbox" class="mt-0.5 rounded" />
-                    <span>Saya menyetujui <Link :href="route('how-it-works')" class="link" target="_blank">syarat & ketentuan lelang</Link>, termasuk kewajiban membayar bila menang.</span>
+                    <span>Saya menyetujui <Link :href="route('legal.terms')" class="link" target="_blank">Syarat & Ketentuan</Link> dan
+                        <Link :href="route('legal.privacy')" class="link" target="_blank">Kebijakan Privasi</Link>, termasuk kewajiban membayar bila menang.</span>
                 </label>
             </Field>
             <button class="btn-primary w-full" :disabled="form.processing">Buat akun</button>

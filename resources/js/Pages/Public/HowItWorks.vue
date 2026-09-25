@@ -85,6 +85,8 @@ const faqs = [
 
             <section class="mt-12 rounded-2xl border border-stone-200 bg-white p-6 text-sm text-stone-600">
                 <h2 class="text-lg font-bold text-ink">Syarat & Ketentuan Singkat</h2>
+                <p class="mt-1">Baca versi lengkap: <Link :href="route('legal.terms')" class="link">Syarat & Ketentuan</Link> ·
+                    <Link :href="route('legal.privacy')" class="link">Kebijakan Privasi</Link></p>
                 <ul class="mt-3 list-disc space-y-1 pl-5">
                     <li>Setiap penawaran bersifat mengikat dan tidak dapat dibatalkan.</li>
                     <li>Barang dijual sesuai kondisi apa adanya (as is) berdasarkan hasil pemeriksaan yang ditampilkan.</li>

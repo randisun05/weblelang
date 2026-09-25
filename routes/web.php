@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/', Public\HomeController::class)->name('home');
 Route::get('/cara-kerja', [Public\PageController::class, 'howItWorks'])->name('how-it-works');
+Route::get('/syarat-ketentuan', [Public\LegalController::class, 'terms'])->name('legal.terms');
+Route::get('/kebijakan-privasi', [Public\LegalController::class, 'privacy'])->name('legal.privacy');
 Route::get('/lelang', [Public\AuctionController::class, 'index'])->name('auctions.index');
 Route::get('/lelang/{auction:slug}', [Public\AuctionController::class, 'show'])->name('auctions.show');
 Route::get('/lot/{lot}', [Public\LotController::class, 'show'])->name('lots.show');
@@ -47,7 +49,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulator'])->name('payments.simulator');
     Route::post('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulate'])->name('payments.simulate');
 
+    Route::post('/persetujuan', [Public\LegalController::class, 'accept'])->name('legal.accept');
+
     Route::prefix('akun')->name('user.')->group(function () {
+        Route::get('/profil/unduh-data', [User\ProfileController::class, 'export'])->middleware('throttle:5,1')->name('profile.export');
         Route::get('/', User\DashboardController::class)->name('dashboard');
         Route::get('/profil', [User\ProfileController::class, 'edit'])->name('profile');
         Route::put('/profil', [User\ProfileController::class, 'update'])->name('profile.update');

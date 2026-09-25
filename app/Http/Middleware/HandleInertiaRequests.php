@@ -35,6 +35,7 @@ class HandleInertiaRequests extends Middleware
                     'is_backoffice' => $user->isBackoffice(),
                     'kyc_status' => $user->kyc_status->value,
                     'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
+                    'needs_terms' => $user->needsTermsAcceptance(),
                 ] : null,
                 'unread_notifications' => fn () => $user?->unreadNotifications()->count() ?? 0,
             ],

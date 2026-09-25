@@ -87,6 +87,15 @@ const submitPw = () => pw.put(route('user-password.update'), {
                 <p class="mt-2 text-xs text-stone-500">🔒 Nomor rekening disimpan terenkripsi.</p>
             </section>
 
+            <section class="card flex flex-wrap items-center justify-between gap-4 p-6 lg:col-span-2">
+                <div>
+                    <h2 class="text-lg font-bold text-ink">Data pribadi Anda</h2>
+                    <p class="text-sm text-stone-500">Unduh salinan seluruh data Anda (UU PDP). Permintaan penghapusan data dapat diajukan melalui
+                        <a :href="route('legal.privacy') + '#pasal-6'" class="link">Kebijakan Privasi</a>.</p>
+                </div>
+                <a :href="route('user.profile.export')" class="btn-outline">⬇ Unduh data saya (JSON)</a>
+            </section>
+
             <section class="card p-6 lg:col-span-2">
                 <h2 class="text-lg font-bold text-ink">Ubah kata sandi</h2>
                 <form class="mt-4 grid gap-4 md:grid-cols-3" @submit.prevent="submitPw">

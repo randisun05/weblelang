@@ -4,9 +4,11 @@ namespace App\Http\Controllers\User;
 
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use App\Services\AuditLogger;
 use App\Services\ImageService;
 use App\Support\Present;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -49,6 +51,44 @@ class ProfileController extends Controller
         $request->user()->update($data);
 
         return back()->with('success', 'Profil diperbarui.');
+    }
+
+    /**
+     * Hak akses data pribadi (UU PDP): unduh salinan data milik pengguna dalam format JSON.
+     * Penawaran pada lot tertutup yang belum ditutup tetap disertakan karena milik pengguna sendiri.
+     */
+    public function export(Request $request): JsonResponse
+    {
+        $user = $request->user()->load([
+            'bids' => fn ($q) => $q->latest('id'),
+            'invoices',
+            'registrations.auction:id,title,code',
+            'watchlist:id,lot_number',
+        ]);
+
+        AuditLogger::log('user.data_exported', $user);
+
+        $data = [
+            'diekspor_pada' => now()->toIso8601String(),
+            'profil' => [
+                'nama' => $user->name, 'email' => $user->email, 'telepon' => $user->phone, 'alamat' => $user->address,
+                'nik' => $user->nik, 'status_kyc' => $user->kyc_status->label(),
+                'rekening' => $user->hasBankAccount() ? ['bank' => $user->bank_name, 'nomor' => $user->bank_account, 'atas_nama' => $user->bank_holder] : null,
+                'terdaftar' => $user->created_at->toIso8601String(),
+                'persetujuan_syarat' => ['versi' => $user->terms_version, 'pada' => $user->terms_accepted_at?->toIso8601String()],
+            ],
+            'penawaran' => $user->bids->map(fn ($b) => ['lot_id' => $b->lot_id, 'nominal' => $b->amount, 'otomatis' => $b->is_auto, 'waktu' => $b->created_at->toIso8601String(), 'ip' => $b->ip]),
+            'invoice' => $user->invoices->map(fn ($i) => ['nomor' => $i->number, 'total' => $i->total, 'status' => $i->status->label(), 'dibayar' => $i->paid_at?->toIso8601String()]),
+            'pendaftaran_sesi' => $user->registrations->map(fn ($r) => ['sesi' => $r->auction->title, 'status' => $r->status->label(), 'jaminan' => $r->deposit_status?->label()]),
+            'pembayaran' => Payment::where('user_id', $user->id)->get()->map(fn ($p) => ['referensi' => $p->reference, 'gateway' => $p->gateway, 'nominal' => $p->amount, 'status' => $p->status->label(), 'metode' => $p->method]),
+            'daftar_pantauan' => $user->watchlist->pluck('id'),
+            'notifikasi' => $user->notifications()->limit(500)->get()->map(fn ($n) => ['judul' => $n->data['title'] ?? null, 'isi' => $n->data['body'] ?? null, 'waktu' => $n->created_at->toIso8601String()]),
+        ];
+
+        return response()->json($data, 200, [
+            'Content-Disposition' => 'attachment; filename="data-saya-'.now()->format('Ymd').'.json"',
+            'Cache-Control' => 'private, no-store',
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /** Rekening untuk pengembalian uang jaminan. */

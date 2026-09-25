@@ -59,6 +59,7 @@ class User extends Authenticatable
             'kyc_verified_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'is_blocked' => 'boolean',
+            'terms_accepted_at' => 'datetime',
             'nik' => 'encrypted',
             'bank_account' => 'encrypted',
         ];
@@ -82,6 +83,17 @@ class User extends Authenticatable
     public function registrations(): HasMany
     {
         return $this->hasMany(AuctionRegistration::class);
+    }
+
+    /** Pengguna belum menyetujui versi S&K/Kebijakan Privasi yang berlaku saat ini. */
+    public function needsTermsAcceptance(): bool
+    {
+        return ! $this->isBackoffice() && $this->terms_version !== config('legal.terms_version');
+    }
+
+    public function acceptTerms(): void
+    {
+        $this->forceFill(['terms_version' => config('legal.terms_version'), 'terms_accepted_at' => now()])->save();
     }
 
     public function hasBankAccount(): bool
