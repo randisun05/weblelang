@@ -2,8 +2,9 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import Field from '@/Components/Field.vue';
+import Turnstile from '@/Components/Turnstile.vue';
 
-const form = useForm({ email: '' });
+const form = useForm({ email: '', 'cf-turnstile-response': '' });
 </script>
 
 <template>
@@ -14,6 +15,7 @@ const form = useForm({ email: '' });
             <Field label="Email" :error="form.errors.email">
                 <input v-model="form.email" type="email" class="input" required autofocus />
             </Field>
+            <Turnstile v-model="form['cf-turnstile-response']" :error="form.errors.captcha" />
             <button class="btn-primary w-full" :disabled="form.processing">Kirim tautan reset</button>
         </form>
     </AuthLayout>

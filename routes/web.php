@@ -45,7 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/lelang/{auction:slug}/daftar', [User\AuctionRegistrationController::class, 'store'])
         ->middleware('throttle:uploads')->name('auctions.register');
     Route::post('/lelang/{auction:slug}/bayar-jaminan', [User\PaymentController::class, 'payDeposit'])
-        ->middleware('throttle:10,1')->name('auctions.deposit.pay');
+        ->middleware(['verified', 'throttle:10,1'])->name('auctions.deposit.pay');
 
     Route::get('/pembayaran/{payment:reference}', [User\PaymentController::class, 'show'])->name('payments.show');
     Route::get('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulator'])->name('payments.simulator');
@@ -59,7 +59,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/profil', [User\ProfileController::class, 'edit'])->name('profile');
         Route::put('/profil', [User\ProfileController::class, 'update'])->name('profile.update');
         Route::put('/profil/rekening', [User\ProfileController::class, 'updateBank'])->name('profile.bank');
-        Route::post('/profil/kyc', [User\ProfileController::class, 'submitKyc'])->middleware('throttle:uploads')->name('profile.kyc');
+        Route::post('/profil/kyc', [User\ProfileController::class, 'submitKyc'])->middleware(['verified', 'throttle:uploads'])->name('profile.kyc');
 
         Route::get('/notifikasi', [User\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifikasi/baca-semua', [User\NotificationController::class, 'readAll'])->name('notifications.read-all');
@@ -112,6 +112,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
         Route::post('/pendaftaran/{registration}', [Admin\RegistrationController::class, 'decide'])->name('registrations.decide');
         Route::post('/pendaftaran/{registration}/jaminan', [Admin\RegistrationController::class, 'settleDeposit'])->name('registrations.deposit');
         Route::get('/pendaftaran/{registration}/bukti', [Admin\RegistrationController::class, 'proof'])->name('registrations.proof');
+
+        Route::get('/kecurigaan', [Admin\FraudFlagController::class, 'index'])->name('fraud.index');
+        Route::post('/kecurigaan/{flag}', [Admin\FraudFlagController::class, 'review'])->name('fraud.review');
 
         Route::get('/peserta', [Admin\BidderController::class, 'index'])->name('bidders.index');
         Route::get('/peserta/{user}', [Admin\BidderController::class, 'show'])->name('bidders.show');

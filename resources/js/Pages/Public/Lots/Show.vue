@@ -60,6 +60,7 @@ const blocker = computed(() => {
     if (!isLive.value) return null;
     if (!props.viewer) return { text: 'Masuk atau daftar untuk mulai menawar.', href: route('login'), cta: 'Masuk' };
     if (props.viewer.is_backoffice) return { text: 'Akun petugas tidak dapat menawar.' };
+    if (!props.viewer.email_verified) return { text: 'Verifikasi alamat email Anda terlebih dahulu (cek kotak masuk).', href: route('verification.notice'), cta: 'Kirim ulang email verifikasi' };
     if (!props.viewer.kyc_verified) return { text: 'Verifikasi identitas (KTP) diperlukan sebelum menawar.', href: route('user.profile'), cta: 'Verifikasi sekarang' };
     if (!['approved', 'not_required'].includes(props.viewer.registration)) {
         return { text: 'Sesi ini mensyaratkan uang jaminan. Daftar di halaman sesi lelang.', href: route('auctions.show', props.lot.auction.slug), cta: 'Daftar sesi' };

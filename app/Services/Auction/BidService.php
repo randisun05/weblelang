@@ -6,6 +6,7 @@ use App\Enums\AuctionMethod;
 use App\Enums\LotStatus;
 use App\Enums\RegistrationStatus;
 use App\Events\BidPlaced;
+use App\Jobs\ScanLotForFraud;
 use App\Models\AutoBid;
 use App\Models\Bid;
 use App\Models\Lot;
@@ -36,6 +37,9 @@ class BidService
             $now = Carbon::now();
 
             $this->assertCanBid($lot, $user, $now);
+
+            // Pindai indikasi shill bidding setelah transaksi selesai (antrean).
+            ScanLotForFraud::dispatch($lot->id);
 
             if ($lot->method() === AuctionMethod::Sealed) {
                 return $this->placeSealed($lot, $user, $amount, $maxAmount, $now, $meta);
@@ -154,6 +158,10 @@ class BidService
             throw new BidException('Akun petugas tidak dapat mengikuti penawaran.');
         }
 
+        if (! $user->hasVerifiedEmail()) {
+            throw new BidException('Verifikasi alamat email Anda terlebih dahulu (cek kotak masuk).');
+        }
+
         if (config('auction.require_kyc') && ! $user->isKycVerified()) {
             throw new BidException('Lengkapi dan tunggu verifikasi identitas (KYC) sebelum menawar.');
         }
@@ -251,6 +259,7 @@ class BidService
             'is_auto' => $isAuto,
             'ip' => $meta['ip'] ?? null,
             'user_agent' => isset($meta['user_agent']) ? mb_substr($meta['user_agent'], 0, 255) : null,
+            'device_id' => $meta['device_id'] ?? null,
             'prev_hash' => $prevHash,
             'hash' => Bid::computeHash($prevHash, $lot->id, $userId, $amount, $timestamp),
             'created_at' => $now,

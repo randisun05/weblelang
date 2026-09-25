@@ -56,6 +56,7 @@ class LotController extends Controller
                 'watching' => $user->watchlist()->whereKey($lot->id)->exists(),
                 'auto_bid' => $lot->autoBids()->where('user_id', $user->id)->where('is_active', true)->value('max_amount'),
                 'kyc_verified' => $user->isKycVerified(),
+                'email_verified' => $user->hasVerifiedEmail(),
                 'is_backoffice' => $user->isBackoffice(),
                 'registration' => $lot->auction->requiresRegistration()
                     ? $lot->auction->registrations()->where('user_id', $user->id)->value('status')

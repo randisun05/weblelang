@@ -25,6 +25,7 @@ defineProps({ stats: Object, endingSoon: Array, recentBids: Array });
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Barang menunggu inspeksi/persetujuan" :value="num(stats.items_waiting)" :href="route('admin.items.index', { status: 'received' })" />
             <StatCard label="Barang siap dilelang" :value="num(stats.items_ready)" :href="route('admin.items.index', { status: 'approved' })" />
+            <StatCard v-if="stats.fraud_open" label="⚠️ Indikasi kecurangan perlu ditinjau" :value="num(stats.fraud_open)" :href="route('admin.fraud.index')" tone="red" />
             <StatCard label="KYC menunggu verifikasi" :value="num(stats.kyc_pending)" :href="route('admin.bidders.index', { kyc: 'pending' })" />
             <StatCard label="Pendaftaran jaminan menunggu" :value="num(stats.registrations_pending)" :href="route('admin.auctions.index')" />
         </div>

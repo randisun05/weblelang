@@ -25,6 +25,7 @@ const groups = computed(() => [
         items: [
             { label: 'Sesi Lelang', icon: '🔨', route: 'admin.auctions.*', href: 'admin.auctions.index' },
             { label: 'Peserta & KYC', icon: '🪪', route: 'admin.bidders.*', href: 'admin.bidders.index' },
+            { label: 'Kecurigaan', icon: '🚩', route: 'admin.fraud.*', href: 'admin.fraud.index' },
         ],
     },
     isAdmin.value && {
