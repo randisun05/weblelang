@@ -36,7 +36,7 @@ const steps = [
                     </p>
                     <div class="mt-8 flex flex-wrap gap-3">
                         <Link :href="route('auctions.index')" class="btn-primary px-6 py-3 text-base">Lihat jadwal lelang</Link>
-                        <Link :href="route('how-it-works') + '#titip'" class="btn border border-white/20 px-6 py-3 text-base text-white hover:bg-white/10">Titipkan barang Anda</Link>
+                        <Link :href="route('consign.create')" class="btn border border-white/20 px-6 py-3 text-base text-white hover:bg-white/10">Titipkan barang Anda</Link>
                     </div>
                     <dl class="mt-10 grid max-w-md grid-cols-3 gap-6 border-t border-white/10 pt-6">
                         <div><dt class="text-xs text-stone-400">Terjual</dt><dd class="text-2xl font-bold">{{ num(stats.sold) }}</dd></div>

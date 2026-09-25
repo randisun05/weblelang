@@ -35,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
                 ->response(fn () => back()->with('error', 'Terlalu banyak penawaran dalam waktu singkat. Tunggu sebentar.'));
         });
 
+        // Form titip barang publik: 5 pengajuan per jam per IP.
+        RateLimiter::for('consign', fn (Request $request) => Limit::perHour(5)->by($request->ip()));
+
         RateLimiter::for('uploads', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
     }
 }

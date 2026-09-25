@@ -11,6 +11,7 @@ const open = ref(false);
 const nav = [
     { label: 'Beranda', route: 'home' },
     { label: 'Jadwal Lelang', route: 'auctions.index' },
+    { label: 'Titip Barang', route: 'consign.create' },
     { label: 'Cara Kerja', route: 'how-it-works' },
 ];
 
@@ -91,7 +92,7 @@ const logout = () => router.post(route('logout'));
                     <p class="mb-2 font-semibold text-white">Jelajahi</p>
                     <Link :href="route('auctions.index')" class="block py-1 hover:text-white">Jadwal lelang</Link>
                     <Link :href="route('how-it-works')" class="block py-1 hover:text-white">Cara ikut lelang</Link>
-                    <Link :href="route('how-it-works') + '#titip'" class="block py-1 hover:text-white">Titip barang untuk dilelang</Link>
+                    <Link :href="route('consign.create')" class="block py-1 hover:text-white">Titip barang untuk dilelang</Link>
                     <Link :href="route('legal.terms')" class="block py-1 hover:text-white">Syarat & Ketentuan</Link>
                     <Link :href="route('legal.privacy')" class="block py-1 hover:text-white">Kebijakan Privasi</Link>
                 </div>

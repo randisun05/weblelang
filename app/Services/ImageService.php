@@ -16,7 +16,13 @@ class ImageService
 {
     public function store(UploadedFile $file, string $directory, string $disk = 'public', int $maxWidth = 1600): string
     {
-        $encoded = Image::decodePath($file->getRealPath())
+        return $this->storeFromPath($file->getRealPath(), $directory, $disk, $maxWidth);
+    }
+
+    /** Sama seperti store(), dari file yang sudah ada di server (mis. memindahkan foto privat ke publik). */
+    public function storeFromPath(string $absolutePath, string $directory, string $disk = 'public', int $maxWidth = 1600): string
+    {
+        $encoded = Image::decodePath($absolutePath)
             ->orient()
             ->scaleDown($maxWidth)
             ->encode(new WebpEncoder(quality: 80, strip: true));

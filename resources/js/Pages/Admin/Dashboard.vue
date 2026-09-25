@@ -23,6 +23,7 @@ defineProps({ stats: Object, endingSoon: Array, recentBids: Array });
 
         <h2 class="mt-8 mb-3 text-sm font-semibold tracking-wide text-stone-500 uppercase">Perlu tindakan</h2>
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Pengajuan titip online baru" :value="num(stats.consign_requests_new)" :href="route('admin.consign-requests.index')" tone="amber" />
             <StatCard label="Barang menunggu inspeksi/persetujuan" :value="num(stats.items_waiting)" :href="route('admin.items.index', { status: 'received' })" />
             <StatCard label="Barang siap dilelang" :value="num(stats.items_ready)" :href="route('admin.items.index', { status: 'approved' })" />
             <StatCard v-if="stats.fraud_open" label="⚠️ Indikasi kecurangan perlu ditinjau" :value="num(stats.fraud_open)" :href="route('admin.fraud.index')" tone="red" />

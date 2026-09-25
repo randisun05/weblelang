@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', Public\HomeController::class)->name('home');
 Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
 Route::get('/cara-kerja', [Public\PageController::class, 'howItWorks'])->name('how-it-works');
+Route::get('/titip-barang', [Public\ConsignmentRequestController::class, 'create'])->name('consign.create');
+Route::post('/titip-barang', [Public\ConsignmentRequestController::class, 'store'])->middleware('throttle:consign')->name('consign.store');
+Route::get('/titip-barang/status/{consignmentRequest:code}', [Public\ConsignmentRequestController::class, 'status'])
+    ->middleware('signed')->name('consign.status');
 Route::get('/syarat-ketentuan', [Public\LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/kebijakan-privasi', [Public\LegalController::class, 'privacy'])->name('legal.privacy');
 Route::get('/lelang', [Public\AuctionController::class, 'index'])->name('auctions.index');
@@ -84,6 +88,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
 
     // Operasional gudang: staf, admin, super admin.
     Route::post('/penitip/{consignor}/reset-portal', [Admin\ConsignorController::class, 'resetPortal'])->name('consignors.reset-portal');
+    Route::get('/pengajuan-titip', [Admin\ConsignmentRequestController::class, 'index'])->name('consign-requests.index');
+    Route::get('/pengajuan-titip/{consignmentRequest}', [Admin\ConsignmentRequestController::class, 'show'])->name('consign-requests.show');
+    Route::get('/pengajuan-titip/{consignmentRequest}/foto/{index}', [Admin\ConsignmentRequestController::class, 'photo'])->whereNumber('index')->name('consign-requests.photo');
+    Route::post('/pengajuan-titip/{consignmentRequest}/tinjau', [Admin\ConsignmentRequestController::class, 'reviewing'])->name('consign-requests.reviewing');
+    Route::post('/pengajuan-titip/{consignmentRequest}/terima', [Admin\ConsignmentRequestController::class, 'accept'])->name('consign-requests.accept');
+    Route::post('/pengajuan-titip/{consignmentRequest}/tolak', [Admin\ConsignmentRequestController::class, 'reject'])->name('consign-requests.reject');
+
     Route::resource('penitip', Admin\ConsignorController::class)->names('consignors')->parameters(['penitip' => 'consignor']);
     Route::resource('barang', Admin\ItemController::class)->names('items')->parameters(['barang' => 'item']);
     Route::post('/barang/{item}/status', [Admin\ItemController::class, 'transition'])->name('items.transition');

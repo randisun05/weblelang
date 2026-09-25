@@ -59,6 +59,7 @@ const faqs = [
                             <div><p class="font-semibold text-ink">{{ t }}</p><p class="text-sm text-stone-600">{{ d }}</p></div>
                         </li>
                     </ol>
+                    <Link :href="route('consign.create')" class="btn-dark mt-6 w-full">Ajukan titip barang online</Link>
                 </section>
             </div>
 
