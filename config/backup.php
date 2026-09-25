@@ -238,7 +238,8 @@ return [
         'notifiable' => Notifiable::class,
 
         'mail' => [
-            'to' => env('BACKUP_NOTIFY_EMAIL', env('LEGAL_EMAIL', 'admin@example.com')),
+            // Nilai kosong di .env dianggap tidak diisi (env() mengembalikan '' bukan default).
+            'to' => env('BACKUP_NOTIFY_EMAIL') ?: (env('LEGAL_EMAIL') ?: 'admin@example.com'),
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),

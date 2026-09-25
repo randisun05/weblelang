@@ -56,4 +56,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Validate compose file
-        run: DB_PASSWORD=x DB_ROOT_PASSWORD=y docker compose -f docker-compose.prod.yml config -q
+        run: cp .env.example .env && DB_PASSWORD=x DB_ROOT_PASSWORD=y docker compose -f docker-compose.prod.yml config -q
