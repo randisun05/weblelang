@@ -7,6 +7,8 @@ use App\Enums\RegistrationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AuctionRegistration;
 use App\Notifications\DepositSettledNotification;
+use App\Payments\Exceptions\GatewayException;
+use App\Payments\PayoutService;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,15 +41,31 @@ class RegistrationController extends Controller
     }
 
     /** Mengembalikan atau menyita uang jaminan. */
-    public function settleDeposit(Request $request, AuctionRegistration $registration): RedirectResponse
+    public function settleDeposit(Request $request, AuctionRegistration $registration, PayoutService $payouts): RedirectResponse
     {
         $data = $request->validate([
             'decision' => ['required', 'in:refunded,forfeited'],
             'note' => ['required_if:decision,forfeited', 'nullable', 'string', 'max:255'],
+            'via_gateway' => ['boolean'],
         ]);
 
         if ($registration->deposit_status !== DepositStatus::Held) {
             return back()->with('error', 'Hanya jaminan yang sedang ditahan yang dapat diproses.');
+        }
+
+        if ($payouts->inFlight($registration)) {
+            return back()->with('error', 'Refund via gateway sedang diproses. Tunggu hasilnya terlebih dahulu.');
+        }
+
+        // Refund lewat disbursement: status "dikembalikan" diset otomatis saat transfer sukses.
+        if ($data['decision'] === 'refunded' && $request->boolean('via_gateway')) {
+            try {
+                $payout = $payouts->send($registration, $request->user());
+            } catch (GatewayException $e) {
+                return back()->with('error', 'Refund gagal: '.$e->getMessage());
+            }
+
+            return back()->with('success', 'Refund dikirim ('.$payout->reference.'): '.$payout->status->label().'.');
         }
 
         $registration->forceFill([

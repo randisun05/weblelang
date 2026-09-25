@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Notifikasi Midtrans datang dari server luar (tanpa token CSRF); keasliannya
         // diverifikasi lewat signature di controller.
-        $middleware->validateCsrfTokens(except: ['payments/midtrans/notification']);
+        $middleware->validateCsrfTokens(except: ['payments/webhook/*', 'payouts/webhook/*', 'payments/midtrans/notification']);
 
         $middleware->redirectGuestsTo(fn () => route('login'));
     })

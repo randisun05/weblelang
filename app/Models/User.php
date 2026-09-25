@@ -31,6 +31,9 @@ class User extends Authenticatable
         'phone',
         'nik',
         'address',
+        'bank_name',
+        'bank_account',
+        'bank_holder',
     ];
 
     /**
@@ -41,6 +44,7 @@ class User extends Authenticatable
         'remember_token',
         'nik',
         'ktp_path',
+        'bank_account',
         'two_factor_secret',
         'two_factor_recovery_codes',
     ];
@@ -56,6 +60,7 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
             'is_blocked' => 'boolean',
             'nik' => 'encrypted',
+            'bank_account' => 'encrypted',
         ];
     }
 
@@ -77,6 +82,11 @@ class User extends Authenticatable
     public function registrations(): HasMany
     {
         return $this->hasMany(AuctionRegistration::class);
+    }
+
+    public function hasBankAccount(): bool
+    {
+        return filled($this->bank_name) && filled($this->bank_account) && filled($this->bank_holder);
     }
 
     public function isBackoffice(): bool

@@ -7,6 +7,7 @@ use App\Models\Concerns\HasSequentialCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Invoice extends Model
 {
@@ -50,6 +51,11 @@ class Invoice extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(Lot::class);
+    }
+
+    public function payments(): MorphMany
+    {
+        return $this->morphMany(Payment::class, 'payable')->latest('id');
     }
 
     public function settlement(): HasOne

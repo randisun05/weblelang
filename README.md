@@ -45,6 +45,22 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
 - **Laporan & ekspor Excel**: ringkasan periode, Excel penjualan dan Excel settlement (siap untuk daftar transfer).
 - **Portal penitip** tanpa login: link bertanda tangan, kedaluwarsa, dan bisa dicabut; bisa dikirim via WhatsApp.
 
+**Payment gateway (multi-driver)** — `app/Payments`
+- Driver **Midtrans** (Snap + Iris), **Xendit** (Invoice + Disbursement), dan **Simulator** (lokal/demo, ditolak di production);
+  pilih lewat `PAYMENT_GATEWAY` / `PAYOUT_GATEWAY`. Gateway baru cukup menambah satu kelas driver.
+- Uang masuk: **bayar invoice** & **setor jaminan online** (pendaftaran sesi otomatis disetujui saat lunas).
+- Uang keluar: **payout ke penitip** (klik admin) & **refund jaminan otomatis** setelah sesi selesai
+  (peserta kalah, atau pemenang yang sudah lunas; butuh rekening peserta di profil).
+- Webhook diverifikasi per driver (signature SHA-512 / callback token), nominal dicek, diproses idempoten dengan row lock;
+  satu tagihan hanya boleh punya satu payout aktif (anti transfer ganda). Log di menu **Transaksi Gateway**.
+
+| URL webhook (daftarkan di dashboard gateway) | Untuk |
+|---|---|
+| `POST /payments/webhook/midtrans` (atau alias lama `/payments/midtrans/notification`) | Notifikasi pembayaran Snap |
+| `POST /payouts/webhook/midtrans` | Notifikasi Iris (header `Iris-Signature`) |
+| `POST /payments/webhook/xendit` | Callback invoice (header `x-callback-token`) |
+| `POST /payouts/webhook/xendit` | Callback disbursement |
+
 ## Menjalankan secara lokal
 
 ```bash
@@ -73,15 +89,16 @@ Akun demo (password `password`, **ganti di production**):
 ## Konfigurasi aturan lelang
 
 Semua kebijakan ada di [`config/auction.php`](config/auction.php) (+ variabel `.env`): tabel kelipatan, komisi & premi default,
-biaya admin, batas bayar invoice, anti-sniping, wajib KYC, rekening transfer. Midtrans di `config/midtrans.php`.
-URL notifikasi Midtrans: `POST /payments/midtrans/notification`.
+biaya admin, batas bayar invoice, anti-sniping, wajib KYC, rekening transfer. Gateway pembayaran di
+[`config/payments.php`](config/payments.php) (driver, kredensial, daftar kode bank).
 
 ## Pengujian
 
 ```bash
-php artisan test          # 53 tes: mesin bid, proxy, anti-sniping, penutupan, invoice/settlement,
-                          # otorisasi, webhook Midtrans, alur admin end-to-end, notifikasi,
-                          # invoice kedaluwarsa, jaminan, PDF, Excel, portal penitip
+php artisan test          # 70 tes: mesin bid, proxy, anti-sniping, penutupan, invoice/settlement,
+                          # otorisasi, alur admin end-to-end, notifikasi, invoice kedaluwarsa, jaminan,
+                          # PDF, Excel, portal penitip, payment gateway (Midtrans/Xendit/simulator),
+                          # payout & refund otomatis
 vendor/bin/pint --test    # gaya kode
 ```
 

@@ -6,6 +6,7 @@ use App\Enums\AuctionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Auction;
 use App\Models\Category;
+use App\Payments\PaymentManager;
 use App\Support\Present;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -78,6 +79,8 @@ class AuctionController extends Controller
             ],
             'registration' => $registration ? Present::status($registration->status) : null,
             'deposit' => $registration?->deposit_status ? Present::status($registration->deposit_status) : null,
+            'onlinePayment' => app(PaymentManager::class)->paymentsEnabled(),
+            'hasBank' => (bool) $request->user()?->hasBankAccount(),
             'lots' => $lots,
             'categories' => Category::orderBy('name')->get(['id', 'name']),
             'filters' => $filters,

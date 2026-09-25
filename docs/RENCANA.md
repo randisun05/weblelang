@@ -337,6 +337,18 @@ Catatan penyesuaian dari rencana:
 - Portal penitip read-only via *signed URL* yang kedaluwarsa dan bisa dicabut.
 - Total 53 tes otomatis.
 
-**Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), refund jaminan otomatis via payment gateway,
-sealed bid, Laravel Reverb (websocket), reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
+**Payment gateway multi-driver (sudah dikerjakan):**
+
+- Lapisan `app/Payments` dengan kontrak `PaymentGateway` & `PayoutGateway`; driver Midtrans (Snap + Iris),
+  Xendit (Invoice + Disbursement), dan Simulator (lokal/demo). Dipilih lewat `.env`, bisa beda gateway
+  untuk uang masuk dan uang keluar.
+- Bayar invoice & setor jaminan online; payout settlement ke penitip; refund jaminan otomatis setelah sesi selesai.
+- Keamanan: verifikasi signature/token per driver, cek nominal, pemrosesan idempoten + row lock, satu payout aktif
+  per tagihan, rekening terenkripsi, persetujuan Iris yang gagal tidak memicu transfer ganda.
+- Total 70 tes otomatis (HTTP gateway di-*fake*, tidak memanggil gateway sungguhan).
+- **Sebelum go-live:** uji di sandbox masing-masing gateway, cocokkan kode bank di `config/payments.php`,
+  daftarkan URL webhook, dan aktifkan fitur disbursement/Iris di akun gateway (perlu verifikasi bisnis).
+
+**Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), sealed bid, Laravel Reverb (websocket),
+reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
 **Fase 3:** buy now, live auction dengan juru lelang, PWA, multi-tenant, analitik harga.

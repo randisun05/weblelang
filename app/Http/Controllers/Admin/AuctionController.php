@@ -10,6 +10,7 @@ use App\Models\Auction;
 use App\Models\AuctionRegistration;
 use App\Models\Item;
 use App\Models\Lot;
+use App\Payments\PaymentManager;
 use App\Services\Auction\BidException;
 use App\Services\Auction\LotCloser;
 use App\Services\AuditLogger;
@@ -60,7 +61,7 @@ class AuctionController extends Controller
 
     public function show(Auction $auction): Response
     {
-        $auction->load(['lots.item.images', 'lots.leader:id,name', 'registrations.user:id,name,email']);
+        $auction->load(['lots.item.images', 'lots.leader:id,name', 'registrations.user', 'registrations.payouts', 'registrations.payments']);
 
         return Inertia::render('Admin/Auctions/Show', [
             'auction' => [
@@ -92,8 +93,12 @@ class AuctionController extends Controller
                 'id' => $r->id, 'user' => $r->user->name, 'email' => $r->user->email,
                 'status' => Present::status($r->status), 'has_proof' => (bool) $r->deposit_proof,
                 'deposit' => $r->deposit_status ? Present::status($r->deposit_status) : null,
+                'paid_online' => $r->payments->contains(fn ($p) => $p->status->value === 'paid'),
+                'has_bank' => $r->user->hasBankAccount(),
+                'payout' => ($p = $r->payouts->first()) ? ['status' => Present::status($p->status), 'failure_reason' => $p->failure_reason] : null,
                 'created_at' => $r->created_at->toIso8601String(),
             ]),
+            'payoutEnabled' => app(PaymentManager::class)->payoutsEnabled(),
             'availableItems' => Item::with('consignor:id,name')->where('status', ItemStatus::Approved)->orderBy('code')->get()
                 ->map(fn (Item $i) => [
                     'id' => $i->id, 'code' => $i->code, 'title' => $i->title, 'consignor' => $i->consignor?->name,

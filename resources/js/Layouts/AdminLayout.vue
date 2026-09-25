@@ -32,6 +32,7 @@ const groups = computed(() => [
         items: [
             { label: 'Invoice', icon: '🧾', route: 'admin.invoices.*', href: 'admin.invoices.index' },
             { label: 'Settlement Penitip', icon: '💸', route: 'admin.settlements.*', href: 'admin.settlements.index' },
+            { label: 'Transaksi Gateway', icon: '💳', route: 'admin.transactions.*', href: 'admin.transactions.index' },
             { label: 'Laporan & Ekspor', icon: '📈', route: 'admin.reports.*', href: 'admin.reports.index' },
         ],
     },

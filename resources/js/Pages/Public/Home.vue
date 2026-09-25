@@ -13,7 +13,7 @@ const steps = [
     { icon: '📝', title: 'Daftar & verifikasi', text: 'Buat akun gratis lalu unggah KTP. Verifikasi selesai maks. 1x24 jam.' },
     { icon: '🔎', title: 'Pilih barang', text: 'Semua barang sudah diperiksa tim kami — lengkap dengan foto dan kondisi.' },
     { icon: '🔨', title: 'Tawar atau auto-bid', text: 'Pasang batas maksimum dan sistem menawar otomatis untuk Anda.' },
-    { icon: '🎉', title: 'Menang & bayar', text: 'Bayar invoice via transfer atau Midtrans, lalu ambil/kirim barang.' },
+    { icon: '🎉', title: 'Menang & bayar', text: 'Bayar online (VA, QRIS, e-wallet) atau transfer, lalu ambil/kirim barang.' },
 ];
 </script>
 

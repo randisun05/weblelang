@@ -93,7 +93,7 @@ const logout = () => router.post(route('logout'));
                 </div>
                 <div class="text-sm">
                     <p class="mb-2 font-semibold text-white">Keamanan</p>
-                    <p class="text-stone-400">Peserta terverifikasi KTP · Riwayat penawaran tidak dapat diubah · Pembayaran via Midtrans</p>
+                    <p class="text-stone-400">Peserta terverifikasi KTP · Riwayat penawaran tidak dapat diubah · Pembayaran aman via payment gateway</p>
                 </div>
             </div>
             <div class="border-t border-white/10 py-4 text-center text-xs text-stone-500">© {{ new Date().getFullYear() }} {{ $page.props.app.name }}</div>

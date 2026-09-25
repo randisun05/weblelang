@@ -4,10 +4,11 @@ import AccountLayout from '@/Layouts/AccountLayout.vue';
 import Field from '@/Components/Field.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 
-const props = defineProps({ profile: Object });
+const props = defineProps({ profile: Object, banks: Object });
 
 const form = useForm({ name: props.profile.name, phone: props.profile.phone ?? '', address: props.profile.address ?? '' });
 const kyc = useForm({ nik: '', address: props.profile.address ?? '', ktp: null });
+const bank = useForm({ bank_name: props.profile.bank_name ?? '', bank_account: '', bank_holder: props.profile.bank_holder ?? props.profile.name });
 const pw = useForm({ current_password: '', password: '', password_confirmation: '' });
 
 const submitKyc = () => kyc.post(route('user.profile.kyc'), { forceFormData: true, preserveScroll: true, onSuccess: () => kyc.reset('nik', 'ktp') });
@@ -62,6 +63,28 @@ const submitPw = () => pw.put(route('user-password.update'), {
                         <button class="btn-primary" :disabled="kyc.processing">Kirim untuk verifikasi</button>
                     </form>
                 </template>
+            </section>
+
+            <section class="card p-6 lg:col-span-2">
+                <h2 class="text-lg font-bold text-ink">Rekening pengembalian uang jaminan</h2>
+                <p class="mt-1 text-sm text-stone-500">
+                    Uang jaminan dikembalikan otomatis ke rekening ini setelah sesi lelang selesai.
+                    <template v-if="profile.bank_account_masked">Tersimpan: <b>{{ banks[profile.bank_name] }} {{ profile.bank_account_masked }}</b> a.n. {{ profile.bank_holder }}.</template>
+                </p>
+                <form class="mt-4 grid gap-4 md:grid-cols-4" @submit.prevent="bank.put(route('user.profile.bank'), { preserveScroll: true, onSuccess: () => bank.reset('bank_account') })">
+                    <Field label="Bank" :error="bank.errors.bank_name">
+                        <select v-model="bank.bank_name" class="input">
+                            <option value="" disabled>Pilih bank</option>
+                            <option v-for="(label, code) in banks" :key="code" :value="code">{{ label }}</option>
+                        </select>
+                    </Field>
+                    <Field label="Nomor rekening" :error="bank.errors.bank_account" :hint="profile.bank_account_masked ? 'Isi ulang untuk mengganti.' : ''">
+                        <input v-model="bank.bank_account" inputmode="numeric" class="input font-mono" />
+                    </Field>
+                    <Field label="Atas nama" :error="bank.errors.bank_holder"><input v-model="bank.bank_holder" class="input" /></Field>
+                    <div class="flex items-end"><button class="btn-dark w-full" :disabled="bank.processing">Simpan rekening</button></div>
+                </form>
+                <p class="mt-2 text-xs text-stone-500">🔒 Nomor rekening disimpan terenkripsi.</p>
             </section>
 
             <section class="card p-6 lg:col-span-2">

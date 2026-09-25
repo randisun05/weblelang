@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Support\Present;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,6 +38,7 @@ class ConsignorController extends Controller
         return Inertia::render('Admin/Consignors/Form', [
             'consignor' => null,
             'defaultCommission' => config('auction.default_commission_rate'),
+            'banks' => config('payments.banks'),
         ]);
     }
 
@@ -97,6 +99,7 @@ class ConsignorController extends Controller
                 'bank_account_masked' => $consignor->maskedBankAccount(),
             ],
             'defaultCommission' => config('auction.default_commission_rate'),
+            'banks' => config('payments.banks'),
         ]);
     }
 
@@ -137,7 +140,7 @@ class ConsignorController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],
             'nik' => ['nullable', 'digits:16'],
-            'bank_name' => ['nullable', 'string', 'max:100'],
+            'bank_name' => ['nullable', Rule::in(array_keys(config('payments.banks')))],
             'bank_account' => ['nullable', 'string', 'regex:/^[0-9]{5,20}$/'],
             'bank_holder' => ['nullable', 'string', 'max:255'],
             'commission_rate' => ['required', 'numeric', 'min:0', 'max:50'],

@@ -14,3 +14,7 @@ export const date = (value) =>
 
 /** Mengubah input "1.500.000" menjadi 1500000. */
 export const parseMoney = (value) => Number(String(value ?? '').replace(/[^0-9]/g, '')) || 0;
+
+/** Escape teks sebelum disisipkan ke HTML (mis. `html` pada SweetAlert2). */
+export const esc = (value) =>
+    String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

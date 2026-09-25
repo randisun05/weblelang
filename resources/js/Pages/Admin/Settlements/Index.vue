@@ -1,18 +1,27 @@
 <script setup>
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import Swal from 'sweetalert2';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import Pagination from '@/Components/Pagination.vue';
 import EmptyState from '@/Components/EmptyState.vue';
-import { dateTime, money } from '@/lib/format';
+import { dateTime, esc, money } from '@/lib/format';
 
-const props = defineProps({ settlements: Object, filters: Object, statuses: Array });
+const props = defineProps({ settlements: Object, filters: Object, statuses: Array, payoutEnabled: Boolean });
 const status = ref(props.filters.status ?? '');
 const filter = () => router.get(route('admin.settlements.index'), { status: status.value }, { preserveState: true, replace: true });
 
 const paying = ref(null);
 const form = useForm({ proof: null });
+const transfer = async (s) => {
+    const { isConfirmed } = await Swal.fire({
+        title: 'Transfer otomatis via gateway?',
+        html: `${money(s.net_amount)} ke <b>${esc(s.consignor.bank_name)} ${esc(s.consignor.bank_account)}</b><br>a.n. ${esc(s.consignor.bank_holder)}`,
+        icon: 'question', showCancelButton: true, confirmButtonText: 'Kirim transfer', cancelButtonText: 'Batal', confirmButtonColor: '#16a34a',
+    });
+    if (isConfirmed) router.post(route('admin.settlements.payout', s.id), {}, { preserveScroll: true });
+};
 const pay = () => form.post(route('admin.settlements.paid', paying.value.id), { forceFormData: true, preserveScroll: true, onSuccess: () => { paying.value = null; form.reset(); } });
 </script>
 
@@ -37,9 +46,16 @@ const pay = () => form.post(route('admin.settlements.paid', paying.value.id), { 
                         <td>{{ money(s.hammer_price) }}</td>
                         <td class="text-xs">{{ money(s.commission) }}<br />({{ s.commission_rate }}%)</td>
                         <td class="font-bold">{{ money(s.net_amount) }}</td>
-                        <td><StatusBadge :status="s.status" /><span v-if="s.paid_at" class="block text-xs text-stone-500">{{ dateTime(s.paid_at) }}</span></td>
-                        <td class="text-right whitespace-nowrap">
-                            <button v-if="s.status.value === 'pending'" class="btn-primary btn-sm" @click="paying = s">Tandai ditransfer</button>
+                        <td>
+                            <StatusBadge :status="s.status" /><span v-if="s.paid_at" class="block text-xs text-stone-500">{{ dateTime(s.paid_at) }}</span>
+                            <span v-if="s.payout" class="mt-1 block text-xs">Gateway: <StatusBadge :status="s.payout.status" /></span>
+                            <span v-if="s.payout?.failure_reason" class="block max-w-40 text-xs text-red-600">{{ s.payout.failure_reason }}</span>
+                        </td>
+                        <td class="space-y-1 text-right whitespace-nowrap">
+                            <template v-if="s.status.value === 'pending' && !['pending', 'processing'].includes(s.payout?.status.value)">
+                                <button v-if="payoutEnabled" class="btn-primary btn-sm block w-full" @click="transfer(s)">{{ s.payout?.status.value === 'failed' ? 'Coba transfer lagi' : 'Transfer via gateway' }}</button>
+                                <button class="btn-outline btn-sm block w-full" @click="paying = s">Tandai ditransfer manual</button>
+                            </template>
                             <a v-else-if="s.has_proof" :href="route('admin.settlements.proof', s.id)" target="_blank" class="link text-xs">Bukti</a>
                         </td>
                     </tr>

@@ -3,7 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import Field from '@/Components/Field.vue';
 
-const props = defineProps({ consignor: Object, defaultCommission: Number });
+const props = defineProps({ consignor: Object, defaultCommission: Number, banks: Object });
 const c = props.consignor;
 
 const form = useForm({
@@ -33,7 +33,12 @@ const submit = () => (c ? form.put(route('admin.consignors.update', c.id)) : for
             <div class="border-t border-stone-100 pt-6">
                 <h3 class="mb-3 font-semibold text-ink">Rekening pencairan hasil lelang</h3>
                 <div class="grid gap-4 md:grid-cols-3">
-                    <Field label="Bank" :error="form.errors.bank_name"><input v-model="form.bank_name" class="input" placeholder="BCA" /></Field>
+                    <Field label="Bank" :error="form.errors.bank_name">
+                        <select v-model="form.bank_name" class="input">
+                            <option value="">-</option>
+                            <option v-for="(label, code) in banks" :key="code" :value="code">{{ label }}</option>
+                        </select>
+                    </Field>
                     <Field label="No. rekening" :error="form.errors.bank_account" :hint="c?.bank_account_masked ? `Tersimpan: ${c.bank_account_masked}. Kosongkan jika tidak diubah.` : 'Disimpan terenkripsi.'">
                         <input v-model="form.bank_account" inputmode="numeric" class="input font-mono" />
                     </Field>

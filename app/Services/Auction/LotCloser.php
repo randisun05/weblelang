@@ -11,6 +11,7 @@ use App\Models\Lot;
 use App\Models\User;
 use App\Notifications\LotEndingSoonNotification;
 use App\Notifications\LotWonNotification;
+use App\Payments\PayoutService;
 use App\Services\AuditLogger;
 use App\Services\InvoiceService;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +22,9 @@ use Illuminate\Support\Facades\DB;
  */
 class LotCloser
 {
-    public function __construct(private InvoiceService $invoices) {}
+    public function __construct(private InvoiceService $invoices, private PayoutService $payouts) {}
 
-    /** @return array{opened: int, closed: int, reminded: int, expired: int} */
+    /** @return array{opened: int, closed: int, reminded: int, expired: int, refunded: int} */
     public function tick(): array
     {
         return [
@@ -31,6 +32,7 @@ class LotCloser
             'closed' => $this->closeDue(),
             'reminded' => $this->notifyEndingSoon(),
             'expired' => $this->invoices->cancelOverdue(),
+            'refunded' => $this->payouts->refundDueDeposits(),
         ];
     }
 

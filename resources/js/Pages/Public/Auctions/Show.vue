@@ -1,6 +1,6 @@
 <script setup>
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { reactive, watch } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { reactive, ref, watch } from 'vue';
 import PublicLayout from '@/Layouts/PublicLayout.vue';
 import LotCard from '@/Components/LotCard.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
@@ -9,7 +9,7 @@ import Pagination from '@/Components/Pagination.vue';
 import EmptyState from '@/Components/EmptyState.vue';
 import { dateTime, money } from '@/lib/format';
 
-const props = defineProps({ auction: Object, registration: Object, deposit: Object, lots: Object, categories: Array, filters: Object });
+const props = defineProps({ auction: Object, registration: Object, deposit: Object, onlinePayment: Boolean, hasBank: Boolean, lots: Object, categories: Array, filters: Object });
 
 const filter = reactive({ q: props.filters.q ?? '', category: props.filters.category ?? '', sort: props.filters.sort ?? 'lot' });
 let timer;
@@ -20,6 +20,11 @@ watch(filter, () => {
 
 const reg = useForm({ proof: null });
 const register = () => reg.post(route('auctions.register', props.auction.slug), { forceFormData: true, onSuccess: () => reg.reset() });
+const payingDeposit = ref(false);
+const payDeposit = () => {
+    payingDeposit.value = true;
+    router.post(route('auctions.deposit.pay', props.auction.slug), {}, { onFinish: () => (payingDeposit.value = false) });
+};
 </script>
 
 <template>
@@ -48,17 +53,27 @@ const register = () => reg.post(route('auctions.register', props.auction.slug), 
             <div v-if="auction.deposit_amount && (auction.status.value !== 'closed' || registration)" class="mx-auto max-w-7xl px-4 pb-6">
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
                     <template v-if="!$page.props.auth.user">Sesi ini mensyaratkan uang jaminan. <a :href="route('login')" class="link">Masuk</a> untuk mendaftar.</template>
-                    <template v-else-if="registration && registration.value !== 'rejected'">
+                    <template v-else-if="registration && registration.value === 'approved'">
                         Status pendaftaran Anda: <StatusBadge :status="registration" />
                         <StatusBadge v-if="deposit" :status="deposit" class="ml-1" />
+                        <p v-if="deposit?.value === 'held' && !hasBank" class="mt-2 text-amber-900">
+                            Isi <Link :href="route('user.profile')" class="link">rekening pengembalian jaminan</Link> agar jaminan dapat dikembalikan otomatis setelah sesi selesai.
+                        </p>
                     </template>
-                    <form v-else class="flex flex-wrap items-center gap-3" @submit.prevent="register">
-                        <span>Transfer jaminan <b>{{ money(auction.deposit_amount) }}</b> lalu unggah bukti transfer:</span>
+                    <div v-else class="space-y-3">
+                        <p v-if="registration?.value === 'pending'">Status pendaftaran Anda: <StatusBadge :status="registration" /> — bukti transfer sedang diperiksa, atau bayar online agar langsung aktif.</p>
+                        <div v-if="onlinePayment" class="flex flex-wrap items-center gap-3">
+                            <button class="btn-primary btn-sm" :disabled="payingDeposit" @click="payDeposit">💳 Bayar jaminan {{ money(auction.deposit_amount) }} online</button>
+                            <span class="text-xs text-amber-900">Pendaftaran langsung disetujui otomatis setelah pembayaran berhasil.</span>
+                        </div>
+                    <form class="flex flex-wrap items-center gap-3" @submit.prevent="register">
+                        <span>{{ onlinePayment ? 'Atau transfer manual' : 'Transfer jaminan' }} <b>{{ money(auction.deposit_amount) }}</b> lalu unggah bukti transfer:</span>
                         <input type="file" accept="image/*" class="text-sm" @input="reg.proof = $event.target.files[0]" />
                         <button class="btn-primary btn-sm" :disabled="!reg.proof || reg.processing">Kirim bukti</button>
                         <span v-if="reg.errors.proof" class="text-red-600">{{ reg.errors.proof }}</span>
                         <span v-if="registration?.value === 'rejected'" class="text-red-600">Pendaftaran sebelumnya ditolak, silakan kirim ulang.</span>
                     </form>
+                    </div>
                 </div>
             </div>
         </section>

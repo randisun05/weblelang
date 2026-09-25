@@ -5,17 +5,15 @@ namespace App\Http\Controllers\User;
 use App\Enums\InvoiceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Payments\PaymentManager;
 use App\Services\DocumentService;
 use App\Services\ImageService;
-use App\Services\MidtransService;
 use App\Support\Present;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 
 class InvoiceController extends Controller
 {
@@ -34,7 +32,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function show(Request $request, Invoice $invoice, MidtransService $midtrans): Response
+    public function show(Request $request, Invoice $invoice, PaymentManager $payments): Response
     {
         $this->authorizeOwner($request, $invoice);
         $invoice->load('lot.item.images', 'lot.auction');
@@ -60,27 +58,9 @@ class InvoiceController extends Controller
                 'cancel_reason' => $invoice->cancel_reason,
                 'status' => Present::status($invoice->status),
             ],
-            'midtrans' => [
-                'enabled' => $midtrans->isConfigured(),
-                'client_key' => config('midtrans.client_key'),
-                'is_production' => (bool) config('midtrans.is_production'),
-            ],
+            'onlinePayment' => $payments->paymentsEnabled(),
             'bank' => config('auction.bank'),
         ]);
-    }
-
-    public function snap(Request $request, Invoice $invoice, MidtransService $midtrans): JsonResponse
-    {
-        $this->authorizeOwner($request, $invoice);
-        abort_unless($invoice->status === InvoiceStatus::Unpaid, 422, 'Invoice tidak dalam status belum dibayar.');
-
-        try {
-            return response()->json($midtrans->createSnapToken($invoice->load('user', 'lot.item')));
-        } catch (RuntimeException $e) {
-            report($e);
-
-            return response()->json(['message' => 'Pembayaran online sedang tidak tersedia. Gunakan transfer manual.'], 503);
-        }
     }
 
     public function uploadProof(Request $request, Invoice $invoice, ImageService $images): RedirectResponse

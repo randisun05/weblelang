@@ -1,44 +1,21 @@
 <script setup>
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import axios from 'axios';
-import Swal from 'sweetalert2';
 import AccountLayout from '@/Layouts/AccountLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import Countdown from '@/Components/Countdown.vue';
 import LotImage from '@/Components/LotImage.vue';
 import { dateTime, money } from '@/lib/format';
 
-const props = defineProps({ invoice: Object, midtrans: Object, bank: Object });
+const props = defineProps({ invoice: Object, onlinePayment: Boolean, bank: Object });
 
 const proof = useForm({ proof: null });
 const paying = ref(false);
 
-const loadSnap = () =>
-    new Promise((resolve, reject) => {
-        if (window.snap) return resolve(window.snap);
-        const s = document.createElement('script');
-        s.src = props.midtrans.is_production ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js';
-        s.dataset.clientKey = props.midtrans.client_key;
-        s.onload = () => resolve(window.snap);
-        s.onerror = reject;
-        document.head.appendChild(s);
-    });
-
-const payOnline = async () => {
+// Diarahkan ke halaman checkout gateway (Midtrans / Xendit / simulator) oleh server.
+const payOnline = () => {
     paying.value = true;
-    try {
-        const [{ data }, snap] = await Promise.all([axios.post(route('user.invoices.snap', props.invoice.id)), loadSnap()]);
-        snap.pay(data.token, {
-            onSuccess: () => { Swal.fire({ icon: 'success', title: 'Pembayaran berhasil', text: 'Status invoice akan diperbarui otomatis.' }); router.reload(); },
-            onPending: () => Swal.fire({ icon: 'info', title: 'Menunggu pembayaran', text: 'Selesaikan pembayaran sesuai instruksi.' }),
-            onError: () => Swal.fire({ icon: 'error', title: 'Pembayaran gagal' }),
-        });
-    } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Gagal', text: e.response?.data?.message ?? 'Pembayaran online tidak tersedia.' });
-    } finally {
-        paying.value = false;
-    }
+    router.post(route('user.invoices.pay', props.invoice.id), {}, { onFinish: () => (paying.value = false) });
 };
 
 const uploadProof = () => proof.post(route('user.invoices.proof', props.invoice.id), { forceFormData: true, preserveScroll: true });
@@ -81,9 +58,10 @@ const uploadProof = () => proof.post(route('user.invoices.proof', props.invoice.
                 <div class="card p-6">
                     <Countdown :to="invoice.due_at" label="Batas pembayaran" />
                     <p class="mt-2 text-xs text-stone-500">Jatuh tempo {{ dateTime(invoice.due_at) }}. Lewat dari itu invoice dapat dibatalkan.</p>
-                    <button v-if="midtrans.enabled" class="btn-primary mt-5 w-full py-3" :disabled="paying" @click="payOnline">
-                        💳 Bayar online (VA, QRIS, e-wallet)
+                    <button v-if="onlinePayment" class="btn-primary mt-5 w-full py-3" :disabled="paying" @click="payOnline">
+                        💳 Bayar online (VA, QRIS, e-wallet, kartu)
                     </button>
+                    <p v-if="onlinePayment" class="mt-2 text-center text-xs text-stone-500">Status invoice terupdate otomatis setelah pembayaran berhasil.</p>
                 </div>
                 <div class="card p-6">
                     <h3 class="font-semibold text-ink">Transfer manual</h3>

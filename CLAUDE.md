@@ -16,6 +16,11 @@ Full plan/research: `docs/RENCANA.md`. Stack mirrors `randisun05/asprov1` (web-a
 - `app/Support/Present.php` builds Inertia props — never send `reserve_price` to bidders.
 - Money is integer rupiah everywhere. Status enums in `app/Enums` (label/color used by `StatusBadge.vue`).
 - Business rules in `config/auction.php`.
+- Payments (`app/Payments`): `PaymentManager` resolves drivers (midtrans/xendit/simulator — simulator refused in
+  production) implementing `Contracts\PaymentGateway` + `Contracts\PayoutGateway`. `PaymentService` (checkout →
+  webhook → fulfil Invoice/AuctionRegistration) and `PayoutService` (Settlement payout, deposit refunds; one active
+  payout per payable) are generic over morph `payable`. Webhooks: `/payments/webhook/{gateway}`, `/payouts/webhook/{gateway}`.
+  Tests fake HTTP with `Http::fake`; never call real gateways in tests.
 - Notifications (`app/Notifications`) extend `AuctionNotification` (mail + database, queued after commit) —
   production needs `php artisan queue:work`. PDFs via `DocumentService` (dompdf, views in `resources/views/pdf`),
   Excel via `app/Exports` (maatwebsite/excel 4). Consignor portal = temporary signed URL + revocable `portal_nonce`.

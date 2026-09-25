@@ -20,8 +20,14 @@ Route::get('/lot/{lot}/state', [Public\LotController::class, 'state'])->middlewa
 Route::get('/portal-penitip/{consignor}', Public\ConsignorPortalController::class)
     ->middleware(['signed', 'throttle:30,1'])->name('consignor.portal');
 
-Route::post('/payments/midtrans/notification', Public\MidtransNotificationController::class)
-    ->middleware('throttle:60,1')->name('payments.midtrans.notification');
+// Webhook payment gateway (Midtrans / Xendit / ...). Keaslian diverifikasi per driver.
+Route::middleware('throttle:120,1')->group(function () {
+    Route::post('/payments/webhook/{gateway}', [Public\PaymentWebhookController::class, 'payment'])->name('payments.webhook');
+    Route::post('/payouts/webhook/{gateway}', [Public\PaymentWebhookController::class, 'payout'])->name('payouts.webhook');
+    // Alias lama untuk URL notifikasi Midtrans yang sudah terdaftar di dashboard.
+    Route::post('/payments/midtrans/notification', [Public\PaymentWebhookController::class, 'payment'])
+        ->defaults('gateway', 'midtrans')->name('payments.midtrans.notification');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -33,11 +39,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/lot/{lot}/watch', [User\WatchlistController::class, 'toggle'])->name('lots.watch');
     Route::post('/lelang/{auction:slug}/daftar', [User\AuctionRegistrationController::class, 'store'])
         ->middleware('throttle:uploads')->name('auctions.register');
+    Route::post('/lelang/{auction:slug}/bayar-jaminan', [User\PaymentController::class, 'payDeposit'])
+        ->middleware('throttle:10,1')->name('auctions.deposit.pay');
+
+    Route::get('/pembayaran/{payment:reference}', [User\PaymentController::class, 'show'])->name('payments.show');
+    Route::get('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulator'])->name('payments.simulator');
+    Route::post('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulate'])->name('payments.simulate');
 
     Route::prefix('akun')->name('user.')->group(function () {
         Route::get('/', User\DashboardController::class)->name('dashboard');
         Route::get('/profil', [User\ProfileController::class, 'edit'])->name('profile');
         Route::put('/profil', [User\ProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profil/rekening', [User\ProfileController::class, 'updateBank'])->name('profile.bank');
         Route::post('/profil/kyc', [User\ProfileController::class, 'submitKyc'])->middleware('throttle:uploads')->name('profile.kyc');
 
         Route::get('/notifikasi', [User\NotificationController::class, 'index'])->name('notifications.index');
@@ -47,7 +60,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoice', [User\InvoiceController::class, 'index'])->name('invoices.index');
         Route::get('/invoice/{invoice}', [User\InvoiceController::class, 'show'])->name('invoices.show');
         Route::get('/invoice/{invoice}/pdf', [User\InvoiceController::class, 'pdf'])->name('invoices.pdf');
-        Route::post('/invoice/{invoice}/snap', [User\InvoiceController::class, 'snap'])->middleware('throttle:10,1')->name('invoices.snap');
+        Route::post('/invoice/{invoice}/bayar', [User\PaymentController::class, 'payInvoice'])->middleware('throttle:10,1')->name('invoices.pay');
         Route::post('/invoice/{invoice}/bukti', [User\InvoiceController::class, 'uploadProof'])->middleware('throttle:uploads')->name('invoices.proof');
     });
 });
@@ -103,11 +116,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
 
         Route::get('/settlement', [Admin\SettlementController::class, 'index'])->name('settlements.index');
         Route::post('/settlement/{settlement}/bayar', [Admin\SettlementController::class, 'markPaid'])->name('settlements.paid');
+        Route::post('/settlement/{settlement}/transfer', [Admin\SettlementController::class, 'payout'])->name('settlements.payout');
         Route::get('/settlement/{settlement}/bukti', [Admin\SettlementController::class, 'proof'])->name('settlements.proof');
 
         Route::get('/laporan', [Admin\ReportController::class, 'index'])->name('reports.index');
         Route::get('/laporan/penjualan.xlsx', [Admin\ReportController::class, 'sales'])->name('reports.sales');
         Route::get('/laporan/settlement.xlsx', [Admin\ReportController::class, 'settlements'])->name('reports.settlements');
+
+        Route::get('/transaksi', [Admin\TransactionController::class, 'index'])->name('transactions.index');
 
         Route::get('/log-audit', [Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
     });

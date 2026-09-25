@@ -10,6 +10,7 @@ use App\Support\Present;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +30,11 @@ class ProfileController extends Controller
                 'has_ktp' => (bool) $user->ktp_path,
                 'kyc' => Present::status($user->kyc_status),
                 'kyc_note' => $user->kyc_note,
+                'bank_name' => $user->bank_name,
+                'bank_holder' => $user->bank_holder,
+                'bank_account_masked' => $user->bank_account ? str_repeat('*', max(0, strlen($user->bank_account) - 4)).substr($user->bank_account, -4) : null,
             ],
+            'banks' => config('payments.banks'),
         ]);
     }
 
@@ -44,6 +49,21 @@ class ProfileController extends Controller
         $request->user()->update($data);
 
         return back()->with('success', 'Profil diperbarui.');
+    }
+
+    /** Rekening untuk pengembalian uang jaminan. */
+    public function updateBank(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'bank_name' => ['required', Rule::in(array_keys(config('payments.banks')))],
+            'bank_account' => ['required', 'string', 'regex:/^[0-9]{5,20}$/'],
+            'bank_holder' => ['required', 'string', 'max:255'],
+        ]);
+
+        $request->user()->update($data);
+        AuditLogger::log('user.bank_updated', $request->user());
+
+        return back()->with('success', 'Rekening pengembalian jaminan disimpan.');
     }
 
     /** Pengajuan verifikasi identitas. KTP disimpan di disk privat. */

@@ -6,6 +6,7 @@ use App\Enums\SettlementStatus;
 use App\Models\Concerns\HasSequentialCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /** Penyetoran hasil lelang ke penitip. */
 class Settlement extends Model
@@ -44,6 +45,11 @@ class Settlement extends Model
     public function consignor(): BelongsTo
     {
         return $this->belongsTo(Consignor::class)->withTrashed();
+    }
+
+    public function payouts(): MorphMany
+    {
+        return $this->morphMany(Payout::class, 'payable')->latest('id');
     }
 
     public function invoice(): BelongsTo
