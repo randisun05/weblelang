@@ -13,10 +13,14 @@ x-app: &app
   image: weblelang:latest
   restart: unless-stopped
   env_file: .env
-  environment:
+  environment: &app-env
     DB_CONNECTION: mysql
     DB_HOST: db
     DB_PORT: 3306
+    # Aplikasi menyiarkan event ke Reverb lewat jaringan internal docker.
+    REVERB_HOST: reverb
+    REVERB_PORT: 8080
+    REVERB_SCHEME: http
   volumes:
     - storage:/app/storage
   depends_on:
@@ -32,9 +36,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
+      <<: *app-env
       SERVER_NAME: ${SERVER_NAME:-:80}
     volumes:
       - storage:/app/storage
@@ -54,6 +56,12 @@ services:
   scheduler:
     <<: *app
     command: scheduler
+
+  # Websocket real-time. Aktifkan dengan COMPOSE_PROFILES=realtime dan BROADCAST_CONNECTION=reverb di .env.
+  reverb:
+    <<: *app
+    command: reverb
+    profiles: ["realtime"]
 
   db:
     image: mysql:8.4

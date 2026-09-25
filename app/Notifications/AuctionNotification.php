@@ -40,7 +40,14 @@ abstract class AuctionNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $channels = ['database', 'mail'];
+
+        // Lonceng real-time di browser bila websocket (Reverb/Pusher) aktif.
+        if (in_array(config('broadcasting.default'), ['reverb', 'pusher', 'ably'], true)) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage

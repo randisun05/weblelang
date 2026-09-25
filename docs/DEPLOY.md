@@ -63,6 +63,23 @@ Paket: `nginx`, `php8.3-fpm` + ekstensi `mysql gd intl zip mbstring xml curl`, `
 | `LEGAL_*` | identitas penyelenggara untuk Syarat & Ketentuan / Kebijakan Privasi |
 | `SERVER_NAME` | (Docker) domain untuk HTTPS otomatis |
 
+## Real-time (Laravel Reverb, opsional)
+
+Tanpa Reverb, halaman lot memperbarui harga dengan polling tiap beberapa detik. Dengan Reverb,
+perubahan (bid, panggilan juru lelang, lot dibuka/ditutup) langsung terkirim ke browser, dan
+notifikasi seperti "Anda terlampaui" muncul sebagai toast.
+
+1. Isi `.env`: `BROADCAST_CONNECTION=reverb`, `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET`
+   (string acak, mis. `openssl rand -hex 16`), dan `REVERB_ALLOWED_ORIGINS=lelang.domainanda.id`.
+2. **Docker**: tambahkan `COMPOSE_PROFILES=realtime` lalu `docker compose -f docker-compose.prod.yml up -d --build`
+   (build ulang wajib, karena kunci websocket dibaca saat build aset). Caddy meneruskan `/app/*` ke service `reverb`.
+3. **VPS**: aktifkan program `weblelang-reverb` di `deploy/supervisor.conf`; `deploy/nginx.conf` sudah meneruskan
+   `/app/` ke `127.0.0.1:8080`. Isi `REVERB_HOST=127.0.0.1`, `REVERB_PORT=8080`, `REVERB_SCHEME=http`, lalu `npm run build`.
+
+Event websocket hanya berisi `lot_id` dan jenis perubahan. Browser tetap mengambil data dari server,
+jadi aturan penyembunyian (reserve price, lelang tertutup) tidak bisa bocor lewat websocket; bid pada
+lelang tertutup bahkan tidak disiarkan sama sekali. Bila websocket terputus, polling otomatis kembali normal.
+
 ## Monitoring
 
 - **`GET /health`** → `200` bila database, cache, scheduler, queue worker, dan ruang disk sehat; `503` bila ada yang

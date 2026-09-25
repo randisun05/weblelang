@@ -22,5 +22,10 @@
 		max_size 64MB
 	}
 
+	# Websocket Laravel Reverb (service `reverb`, profil compose "realtime").
+	# Hanya /app/* yang dibuka ke publik; API publish (/apps/*) dipanggil aplikasi lewat jaringan internal.
+	@websocket path /app/*
+	reverse_proxy @websocket {$REVERB_UPSTREAM:reverb:8080}
+
 	php_server
 }

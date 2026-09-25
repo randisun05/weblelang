@@ -24,6 +24,7 @@
         "intervention/image-laravel": "^4.1",
         "laravel/fortify": "^1.40",
         "laravel/framework": "^12.0",
+        "laravel/reverb": "^1.0",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "^4.0",
         "sentry/sentry-laravel": "^4.28",

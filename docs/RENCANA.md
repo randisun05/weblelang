@@ -171,7 +171,7 @@ app/
 ├── Services/SettlementService.php            # hitung komisi → dana bersih penitip
 ├── Services/MidtransService.php              # pola sama dgn web-aspro (verifySignature)
 ├── Services/AuditLogger.php
-├── Events/BidPlaced.php                      # ShouldBroadcast (Reverb/Pusher opsional)
+├── Events/LotUpdated.php                     # sinyal Reverb: bid/panggilan/buka/tutup (tanpa data harga)
 └── Console: auctions:tick (dijadwalkan tiap menit)
 resources/js/
 ├── Layouts/{Public,User,Admin}.vue
@@ -180,7 +180,7 @@ resources/js/
 config/auction.php                            # semua aturan bisnis yang bisa diubah
 ```
 
-**Real-time**: bid menyiarkan event `BidPlaced` (siap untuk Laravel Reverb). Tanpa server websocket,
+**Real-time**: setiap perubahan lot menyiarkan event `LotUpdated` lewat Laravel Reverb. Tanpa server websocket,
 halaman lot melakukan *polling* ringan ke endpoint JSON `/lot/{lot}/state` setiap 3–5 detik —
 jadi tetap jalan di shared hosting seperti web-aspro.
 
@@ -324,7 +324,7 @@ Catatan penyesuaian dari rencana:
 - Tabel `settings` diganti `config/auction.php` + `.env` (lebih sederhana; tabel settings dipindah ke Fase 2
   bila admin perlu mengubah aturan dari UI).
 - Kolom atribut dinamis barang bernama `specs` (menghindari bentrok dengan properti internal Eloquent).
-- Real-time memakai polling ringan + event `BidPlaced` yang siap disiarkan (aktifkan Reverb di Fase 2).
+- Real-time memakai Laravel Reverb (`LotUpdated` + notifikasi broadcast), dengan polling sebagai cadangan.
 - Tes otomatis: 41 tes (mesin bid, proxy, anti-sniping, penutupan, invoice/settlement, otorisasi,
   webhook Midtrans, alur admin end-to-end).
 

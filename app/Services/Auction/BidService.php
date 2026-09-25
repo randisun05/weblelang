@@ -5,7 +5,7 @@ namespace App\Services\Auction;
 use App\Enums\AuctionMethod;
 use App\Enums\LotStatus;
 use App\Enums\RegistrationStatus;
-use App\Events\BidPlaced;
+use App\Events\LotUpdated;
 use App\Jobs\ScanLotForFraud;
 use App\Models\AutoBid;
 use App\Models\Bid;
@@ -115,6 +115,8 @@ class BidService
 
         $this->record($lot, $user->id, $amount, false, $now, $meta, updateLeader: false);
         $lot->save();
+
+        LotUpdated::dispatch($lot, LotUpdated::BID);
 
         return $lot;
     }
@@ -297,7 +299,7 @@ class BidService
 
         $lot->save();
 
-        BidPlaced::dispatch($lot);
+        LotUpdated::dispatch($lot, LotUpdated::BID);
 
         if ($previousLeaderId && $previousLeaderId !== $lot->leader_id) {
             User::find($previousLeaderId)?->notify(new OutbidNotification($lot, $lot->current_price));

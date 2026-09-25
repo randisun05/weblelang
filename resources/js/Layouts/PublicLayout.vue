@@ -1,12 +1,28 @@
 <script setup>
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import Swal from 'sweetalert2';
 import FlashMessages from '@/Components/FlashMessages.vue';
 import TermsConsent from '@/Components/TermsConsent.vue';
+import { onUserNotification } from '@/lib/realtime';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const open = ref(false);
+
+// Notifikasi real-time (mis. "Anda terlampaui"): tampilkan toast & perbarui lonceng.
+let stopNotifications;
+onMounted(() => {
+    if (!user.value) return;
+    stopNotifications = onUserNotification(user.value.id, (n) => {
+        page.props.auth.unread_notifications = (page.props.auth.unread_notifications || 0) + 1;
+        Swal.fire({
+            toast: true, position: 'top-end', timer: 6000, showConfirmButton: false, icon: 'info',
+            title: `${n.icon ?? '🔔'} ${n.title ?? 'Notifikasi baru'}`, text: n.body ?? '',
+        });
+    });
+});
+onBeforeUnmount(() => stopNotifications?.());
 
 const nav = [
     { label: 'Beranda', route: 'home' },
