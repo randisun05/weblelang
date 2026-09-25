@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Public;
 use App\Http\Controllers\User;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', Public\HomeController::class)->name('home');
+Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
 Route::get('/cara-kerja', [Public\PageController::class, 'howItWorks'])->name('how-it-works');
 Route::get('/syarat-ketentuan', [Public\LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/kebijakan-privasi', [Public\LegalController::class, 'privacy'])->name('legal.privacy');
