@@ -19,7 +19,7 @@ class SalesExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMappin
     public function query(): Builder
     {
         return Invoice::query()
-            ->with('user:id,name,email', 'lot.auction:id,code,title', 'lot.item:id,code,title,consignor_id', 'lot.item.consignor:id,name', 'settlement')
+            ->with('user:id,name,email', 'lot.auction:id,code,title,method,status', 'lot.item:id,code,title,consignor_id', 'lot.item.consignor:id,name', 'settlement')
             ->whereBetween('created_at', [$this->from, $this->to])
             ->orderBy('id');
     }

@@ -14,6 +14,10 @@ Full plan/research: `docs/RENCANA.md`. Stack mirrors `randisun05/asprov1` (web-a
 - `app/Services/{InvoiceService,SettlementService,MidtransService,ImageService,AuditLogger}.php`
 - Controllers split `Admin/`, `Public/`, `User/`; pages in `resources/js/Pages/{Admin,Public,User,Auth}`.
 - `app/Support/Present.php` builds Inertia props — never send `reserve_price` to bidders.
+- Auction methods (`AuctionMethod` on `auctions.method`): open / sealed / live. `Lot::isConcealed()` = sealed lot not yet
+  closed → never expose amount, count, or leader anywhere (incl. admin); sealed bids don't touch `current_price`/`leader_id`
+  until `LotCloser::close()` resolves the winner. Live lots are opened/closed only by the auctioneer console
+  (`LiveAuctionController`); the scheduler skips them. `Lot` always eager-loads `auction`.
 - Money is integer rupiah everywhere. Status enums in `app/Enums` (label/color used by `StatusBadge.vue`).
 - Business rules in `config/auction.php`.
 - Payments (`app/Payments`): `PaymentManager` resolves drivers (midtrans/xendit/simulator — simulator refused in

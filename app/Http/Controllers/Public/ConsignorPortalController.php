@@ -22,7 +22,7 @@ class ConsignorPortalController extends Controller
         abort_unless($consignor->portal_nonce && hash_equals($consignor->portal_nonce, (string) $request->query('k')), 403, 'Link portal sudah tidak berlaku. Minta link baru ke admin.');
 
         $consignor->load([
-            'items' => fn ($q) => $q->latest()->with('images', 'currentLot.auction:id,title,slug,status'),
+            'items' => fn ($q) => $q->latest()->with('images', 'currentLot.auction:id,title,slug,status,method'),
             'settlements' => fn ($q) => $q->latest()->with('invoice.lot.item:id,title'),
         ]);
 
@@ -46,8 +46,8 @@ class ConsignorPortalController extends Controller
                         'id' => $lot->id,
                         'auction' => $lot->auction->title,
                         'public' => $lot->auction->isPublic(),
-                        'current_price' => $lot->bids_count ? $lot->current_price : $lot->starting_price,
-                        'bids_count' => $lot->bids_count,
+                        'current_price' => Present::visiblePrice($lot),
+                        'bids_count' => $lot->isConcealed() ? null : $lot->bids_count,
                         'ends_at' => $lot->ends_at->toIso8601String(),
                         'status' => Present::status($lot->status),
                     ] : null,

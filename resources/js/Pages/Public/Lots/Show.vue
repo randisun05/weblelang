@@ -15,7 +15,7 @@ const props = defineProps({ lot: Object, state: Object, viewer: Object, pollSeco
 
 const live = ref({ ...props.state });
 const activeImage = ref(0);
-const amount = ref(props.state.minimum_bid);
+const amount = ref(props.state.my_bid ?? props.state.minimum_bid);
 const useAuto = ref(false);
 const maxAmount = ref(null);
 const submitting = ref(false);
@@ -39,16 +39,21 @@ const refresh = async () => {
     }
 };
 onMounted(() => {
-    if (['live', 'scheduled'].includes(live.value.status.value)) poller = setInterval(refresh, (props.pollSeconds || 4) * 1000);
+    // Lelang live butuh pembaruan lebih cepat (panggilan juru lelang).
+    const seconds = props.state.method.value === 'live' ? 2 : props.pollSeconds || 4;
+    if (['live', 'scheduled'].includes(live.value.status.value)) poller = setInterval(refresh, seconds * 1000);
 });
 onBeforeUnmount(() => clearInterval(poller));
 
 watch(() => props.state, (s) => (live.value = { ...s }));
 watch(() => live.value.minimum_bid, (min) => {
-    if (!amount.value || amount.value < min) amount.value = min;
+    if (!isSealed.value && (!amount.value || amount.value < min)) amount.value = min;
 });
 
 const isLive = computed(() => live.value.status.value === 'live');
+const isSealed = computed(() => live.value.method.value === 'sealed');
+const isAuctioneer = computed(() => live.value.method.value === 'live');
+const callText = ['', '📣 Panggilan PERTAMA…', '📣 Panggilan KEDUA… segera terjual!'];
 const premium = computed(() => Math.round((amount.value || 0) * props.lot.auction.buyer_premium_rate / 100));
 
 const blocker = computed(() => {
@@ -69,19 +74,20 @@ const placeBid = async () => {
         Swal.fire({ icon: 'warning', title: 'Nominal terlalu kecil', text: `Penawaran minimum ${money(live.value.minimum_bid)}.` });
         return;
     }
-    if (useAuto.value && (!maxAmount.value || maxAmount.value < amount.value)) {
+    if (!isSealed.value && useAuto.value && (!maxAmount.value || maxAmount.value < amount.value)) {
         Swal.fire({ icon: 'warning', title: 'Batas auto-bid tidak valid', text: 'Batas maksimum harus ≥ nominal penawaran.' });
         return;
     }
 
     const { isConfirmed } = await Swal.fire({
         icon: 'question',
-        title: `Tawar ${money(amount.value)}?`,
+        title: isSealed.value ? `Kirim penawaran tertutup ${money(amount.value)}?` : `Tawar ${money(amount.value)}?`,
         html: `<div style="text-align:left;font-size:14px">
             Jika menang, total yang dibayar:<br>
             <b>${money(amount.value)}</b> + premi ${props.lot.auction.buyer_premium_rate}% (${money(premium.value)})
             = <b>${money(amount.value + premium.value)}</b>
-            ${useAuto.value ? `<br><br>Auto-bid aktif hingga <b>${money(maxAmount.value)}</b>.` : ''}
+            ${!isSealed.value && useAuto.value ? `<br><br>Auto-bid aktif hingga <b>${money(maxAmount.value)}</b>.` : ''}
+            ${isSealed.value ? '<br><br>Penawaran dirahasiakan. Anda dapat mengubahnya sebelum lot ditutup; yang dihitung adalah penawaran terakhir Anda.' : ''}
             <br><br><small>Penawaran bersifat mengikat dan tidak dapat dibatalkan.</small></div>`,
         showCancelButton: true,
         confirmButtonText: 'Ya, tawar',
@@ -93,9 +99,23 @@ const placeBid = async () => {
     submitting.value = true;
     router.post(
         route('lots.bid', props.lot.id),
-        { amount: amount.value, max_amount: useAuto.value ? maxAmount.value : null },
+        { amount: amount.value, max_amount: !isSealed.value && useAuto.value ? maxAmount.value : null },
         { preserveScroll: true, onFinish: () => { submitting.value = false; refresh(); } },
     );
+};
+
+const buyNow = async () => {
+    const price = live.value.buy_now_price;
+    const fee = Math.round((price * props.lot.auction.buyer_premium_rate) / 100);
+    const { isConfirmed } = await Swal.fire({
+        icon: 'question',
+        title: `Beli sekarang ${money(price)}?`,
+        html: `<div style="text-align:left;font-size:14px">Lot langsung menjadi milik Anda tanpa menunggu lelang selesai.<br><br>
+            Total bayar: <b>${money(price)}</b> + premi ${props.lot.auction.buyer_premium_rate}% (${money(fee)}) = <b>${money(price + fee)}</b>
+            <br><br><small>Pembelian bersifat mengikat.</small></div>`,
+        showCancelButton: true, confirmButtonText: 'Ya, beli sekarang', cancelButtonText: 'Batal', confirmButtonColor: '#059669',
+    });
+    if (isConfirmed) router.post(route('lots.buy-now', props.lot.id), {}, { preserveScroll: true });
 };
 
 const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { preserveScroll: true });
@@ -114,6 +134,11 @@ const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { p
             <div class="grid gap-8 lg:grid-cols-[1fr_420px]">
                 <!-- Kiri: galeri & detail -->
                 <div class="contents lg:block lg:space-y-6">
+                    <div v-if="isAuctioneer && lot.auction.stream_embed" class="card order-1 overflow-hidden lg:order-none">
+                        <iframe :src="lot.auction.stream_embed" class="aspect-video w-full" allow="autoplay; encrypted-media" allowfullscreen title="Siaran langsung juru lelang" />
+                    </div>
+                    <a v-else-if="isAuctioneer && lot.auction.stream_url" :href="lot.auction.stream_url" target="_blank" rel="noopener"
+                        class="card order-1 block p-4 text-center font-semibold text-red-600 hover:bg-red-50 lg:order-none">🔴 Tonton siaran juru lelang ↗</a>
                     <div class="card order-1 overflow-hidden lg:order-none">
                         <div class="aspect-[4/3] bg-stone-100">
                             <LotImage :src="lot.item.images[activeImage]" :alt="lot.item.title" />
@@ -159,24 +184,33 @@ const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { p
                             </button>
                         </div>
 
-                        <div class="mt-4 flex items-center gap-2">
+                        <div class="mt-4 flex flex-wrap items-center gap-2">
                             <StatusBadge :status="live.status" />
-                            <span v-if="live.has_reserve" class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                            <StatusBadge v-if="live.method.value !== 'open'" :status="live.method" />
+                            <span v-if="live.has_reserve && live.reserve_met !== null" class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
                                 :class="live.reserve_met ? 'bg-green-50 text-green-700' : 'bg-stone-100 text-stone-600'">
                                 {{ live.reserve_met ? '✓ Harga limit tercapai' : 'Harga limit belum tercapai' }}
                             </span>
                         </div>
 
                         <div class="mt-5 rounded-2xl bg-stone-50 p-4">
-                            <p class="text-xs text-stone-500">{{ live.bids_count ? 'Penawaran tertinggi' : 'Harga awal' }}</p>
+                            <p class="text-xs text-stone-500">{{ live.bids_count && !live.concealed ? 'Penawaran tertinggi' : 'Harga awal' }}</p>
                             <p class="text-3xl font-extrabold text-ink tabular-nums">{{ money(live.current_price) }}</p>
-                            <p class="mt-1 text-xs text-stone-500">{{ live.bids_count }} penawaran
+                            <p class="mt-1 text-xs text-stone-500">{{ live.concealed ? '✉️ Penawaran tertutup — nominal & jumlah penawar dirahasiakan' : `${live.bids_count} penawaran` }}
                                 <template v-if="lot.item.estimate_low"> · Estimasi {{ money(lot.item.estimate_low) }}–{{ money(lot.item.estimate_high) }}</template>
                             </p>
                             <p v-if="live.is_leader" class="mt-2 rounded-lg bg-green-100 px-3 py-1.5 text-sm font-semibold text-green-800">🏆 Anda penawar tertinggi</p>
+                            <p v-if="live.my_bid" class="mt-2 rounded-lg bg-purple-50 px-3 py-1.5 text-sm font-semibold text-purple-800">✉️ Penawaran Anda: {{ money(live.my_bid) }}</p>
+                            <p v-if="live.sold_via === 'buy_now'" class="mt-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-800">⚡ Terjual lewat Beli Langsung</p>
                         </div>
 
-                        <div class="mt-5">
+                        <div v-if="isAuctioneer" class="mt-5">
+                            <p v-if="live.status.value === 'live' && live.live_calls" class="animate-pulse rounded-xl px-4 py-3 text-center text-lg font-extrabold"
+                                :class="live.live_calls === 2 ? 'bg-red-600 text-white' : 'bg-amber-300 text-ink'">{{ callText[live.live_calls] }}</p>
+                            <p v-else-if="live.status.value === 'live'" class="rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">🎙️ Sedang dilelang oleh juru lelang</p>
+                            <p v-else-if="live.status.value === 'scheduled'" class="rounded-xl bg-stone-100 px-4 py-3 text-center text-sm text-stone-600">Menunggu giliran dibuka juru lelang (sesi mulai {{ dateTime(live.starts_at) }})</p>
+                        </div>
+                        <div v-else class="mt-5">
                             <Countdown v-if="live.status.value === 'live'" :to="live.ends_at" label="Berakhir dalam" @finished="refresh" />
                             <Countdown v-else-if="live.status.value === 'scheduled'" :to="live.starts_at" label="Dimulai dalam" @finished="refresh" />
                             <p class="mt-2 text-xs text-stone-500">Tutup: {{ dateTime(live.ends_at) }}</p>
@@ -191,7 +225,19 @@ const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { p
                                 {{ blocker.text }}
                                 <Link v-if="blocker.href" :href="blocker.href" class="btn-primary btn-sm mt-3 w-full">{{ blocker.cta }}</Link>
                             </div>
+                            <form v-else-if="isSealed" class="space-y-3" @submit.prevent="placeBid">
+                                <p class="text-sm text-stone-600">Tawarkan satu harga terbaik Anda. Minimal <b>{{ money(live.minimum_bid) }}</b>, tanpa kelipatan.</p>
+                                <MoneyInput v-model="amount" />
+                                <button class="btn w-full bg-purple-700 py-3 text-base text-white hover:bg-purple-600" :disabled="submitting">
+                                    ✉️ {{ live.my_bid ? 'Ubah penawaran' : 'Kirim penawaran tertutup' }}
+                                </button>
+                                <p class="text-center text-xs text-stone-500">Dirahasiakan dari semua pihak sampai lot ditutup · + premi {{ lot.auction.buyer_premium_rate }}% jika menang</p>
+                            </form>
                             <form v-else class="space-y-3" @submit.prevent="placeBid">
+                                <div v-if="live.buy_now_price" class="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                    <button type="button" class="btn w-full bg-emerald-600 text-white hover:bg-emerald-500" @click="buyNow">⚡ Beli Sekarang {{ money(live.buy_now_price) }}</button>
+                                    <p class="mt-1 text-center text-xs text-emerald-800">Tersedia sampai ada penawaran pertama.</p>
+                                </div>
                                 <p class="text-sm text-stone-600">Minimum <b>{{ money(live.minimum_bid) }}</b> · kelipatan {{ money(live.increment) }}</p>
                                 <div class="grid grid-cols-3 gap-2">
                                     <button v-for="s in [1, 2, 5]" :key="s" type="button" class="btn-outline btn-sm" @click="quick(s)">
@@ -228,6 +274,7 @@ const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { p
                                 </span>
                             </li>
                         </ul>
+                        <p v-else-if="live.concealed" class="mt-3 text-sm text-stone-500">🔒 Riwayat penawaran dirahasiakan dan baru dibuka setelah lot ditutup.</p>
                         <p v-else class="mt-3 text-sm text-stone-500">Belum ada penawaran. Jadilah yang pertama!</p>
                     </div>
                 </aside>

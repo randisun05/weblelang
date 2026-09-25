@@ -28,7 +28,7 @@ class DashboardController extends Controller
             ->whereIn('status', [LotStatus::Live, LotStatus::Scheduled])
             ->whereHas('bids', fn ($q) => $q->where('user_id', $user->id))
             ->orderBy('ends_at')->get()
-            ->map(fn ($lot) => Present::lotCard($lot) + ['is_leader' => $lot->leader_id === $user->id]);
+            ->map(fn ($lot) => Present::lotCard($lot) + ['is_leader' => $lot->isConcealed() ? null : $lot->leader_id === $user->id]);
 
         $won = Lot::with($with)->where('status', LotStatus::Sold)->where('leader_id', $user->id)
             ->latest('closed_at')->limit(12)->get()->map(fn ($lot) => Present::lotCard($lot));

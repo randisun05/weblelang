@@ -2,6 +2,7 @@
 
 namespace App\Services\Auction;
 
+use App\Enums\AuctionMethod;
 use App\Enums\AuctionStatus;
 use App\Enums\ItemStatus;
 use App\Enums\LotStatus;
@@ -48,6 +49,7 @@ class LotCloser
 
         $lots = Lot::with('item', 'watchers')
             ->where('status', LotStatus::Live)
+            ->whereHas('auction', fn ($q) => $q->where('method', '!=', AuctionMethod::Live))
             ->whereNull('ending_notified_at')
             ->where('ends_at', '<=', now()->addMinutes($minutes))
             ->where('ends_at', '>', now())
@@ -78,10 +80,12 @@ class LotCloser
             ->where('starts_at', '<=', $now)
             ->update(['status' => AuctionStatus::Live]);
 
+        // Lot pada lelang live dibuka manual oleh juru lelang, bukan oleh jadwal.
         return Lot::where('status', LotStatus::Scheduled)
             ->where('starts_at', '<=', $now)
             ->where('ends_at', '>', $now)
-            ->whereHas('auction', fn ($q) => $q->whereIn('status', [AuctionStatus::Published, AuctionStatus::Live]))
+            ->whereHas('auction', fn ($q) => $q->whereIn('status', [AuctionStatus::Published, AuctionStatus::Live])
+                ->where('method', '!=', AuctionMethod::Live))
             ->update(['status' => LotStatus::Live, 'updated_at' => $now]);
     }
 
@@ -89,7 +93,8 @@ class LotCloser
     {
         $ids = Lot::whereIn('status', [LotStatus::Live, LotStatus::Scheduled])
             ->where('ends_at', '<=', now())
-            ->whereHas('auction', fn ($q) => $q->whereIn('status', [AuctionStatus::Published, AuctionStatus::Live]))
+            ->whereHas('auction', fn ($q) => $q->whereIn('status', [AuctionStatus::Published, AuctionStatus::Live])
+                ->where('method', '!=', AuctionMethod::Live))
             ->pluck('id');
 
         $closed = 0;
@@ -102,18 +107,24 @@ class LotCloser
         return $closed;
     }
 
-    public function close(int $lotId): bool
+    /** @param  bool  $force  tutup sekarang meski waktu belum habis (palu juru lelang). */
+    public function close(int $lotId, bool $force = false): bool
     {
-        return DB::transaction(function () use ($lotId) {
+        return DB::transaction(function () use ($lotId, $force) {
             $lot = Lot::whereKey($lotId)->lockForUpdate()->first();
 
-            if (! $lot || ! in_array($lot->status, [LotStatus::Live, LotStatus::Scheduled], true) || $lot->ends_at->isFuture()) {
+            if (! $lot || ! in_array($lot->status, [LotStatus::Live, LotStatus::Scheduled], true) || (! $force && $lot->ends_at->isFuture())) {
                 return false;
             }
 
             $lot->load('auction', 'item');
 
+            if ($lot->method() === AuctionMethod::Sealed) {
+                $this->resolveSealedWinner($lot);
+            }
+
             if ($lot->reserveMet()) {
+                $lot->sold_via ??= $lot->method() === AuctionMethod::Live ? 'live' : 'bid';
                 $lot->status = LotStatus::Sold;
                 $lot->winning_bid_id = Bid::where('lot_id', $lot->id)
                     ->where('user_id', $lot->leader_id)
@@ -140,6 +151,95 @@ class LotCloser
             ]);
 
             return true;
+        });
+    }
+
+    /**
+     * Membuka amplop penawaran tertutup: penawaran efektif tiap peserta = yang terakhir dikirim;
+     * tertinggi menang, jika sama yang lebih dulu mengirim penawaran finalnya.
+     */
+    private function resolveSealedWinner(Lot $lot): void
+    {
+        $finalBidIds = Bid::where('lot_id', $lot->id)->selectRaw('max(id)')->groupBy('user_id');
+
+        $winner = Bid::whereIn('id', $finalBidIds)->orderByDesc('amount')->orderBy('id')->first();
+
+        if ($winner) {
+            $lot->current_price = $winner->amount;
+            $lot->leader_id = $winner->user_id;
+        }
+    }
+
+    // ---- Lelang live (dipandu juru lelang) ---------------------------------
+
+    /** Juru lelang membuka lot berikutnya. Hanya satu lot live per sesi. */
+    public function openLive(Lot $lot): void
+    {
+        DB::transaction(function () use ($lot) {
+            $lot = Lot::whereKey($lot->id)->lockForUpdate()->firstOrFail();
+            $auction = $lot->auction;
+
+            if (! $auction->isLive() || ! in_array($auction->status, [AuctionStatus::Published, AuctionStatus::Live], true)) {
+                throw new BidException('Sesi ini bukan lelang live yang sudah terbit.');
+            }
+            if ($lot->status !== LotStatus::Scheduled) {
+                throw new BidException('Lot ini sudah dibuka atau ditutup.');
+            }
+            if ($auction->lots()->where('status', LotStatus::Live)->exists()) {
+                throw new BidException('Tutup lot yang sedang berjalan terlebih dahulu.');
+            }
+
+            $auction->forceFill(['status' => AuctionStatus::Live])->save();
+            // ends_at hanya batas pengaman; penutupan ditentukan palu juru lelang.
+            $lot->forceFill([
+                'status' => LotStatus::Live, 'starts_at' => now(), 'ends_at' => now()->addHours(6),
+                'live_calls' => 0, 'live_called_at' => null,
+            ])->save();
+
+            AuditLogger::log('lot.live_opened', $lot);
+        });
+    }
+
+    /** Panggilan "pertama" lalu "kedua". Bid baru mereset panggilan ke nol. */
+    public function callLive(Lot $lot): int
+    {
+        return DB::transaction(function () use ($lot) {
+            $lot = Lot::whereKey($lot->id)->lockForUpdate()->firstOrFail();
+
+            if (! $lot->auction->isLive() || $lot->status !== LotStatus::Live) {
+                throw new BidException('Lot tidak sedang berjalan.');
+            }
+            if ($lot->live_calls >= 2) {
+                throw new BidException('Sudah panggilan kedua — ketuk palu atau tunggu penawaran baru.');
+            }
+
+            $lot->forceFill(['live_calls' => $lot->live_calls + 1, 'live_called_at' => now()])->save();
+            AuditLogger::log('lot.live_call', $lot, ['call' => $lot->live_calls, 'price' => $lot->current_price]);
+
+            return $lot->live_calls;
+        });
+    }
+
+    /**
+     * Ketuk palu: hanya setelah panggilan kedua. Karena bid baru mereset panggilan,
+     * bid yang masuk di detik terakhir otomatis membatalkan ketukan palu yang terlambat.
+     */
+    public function hammer(Lot $lot): Lot
+    {
+        return DB::transaction(function () use ($lot) {
+            $locked = Lot::whereKey($lot->id)->lockForUpdate()->firstOrFail();
+
+            if (! $locked->auction->isLive() || $locked->status !== LotStatus::Live) {
+                throw new BidException('Lot tidak sedang berjalan.');
+            }
+            if ($locked->live_calls < 2) {
+                throw new BidException('Lakukan panggilan pertama dan kedua sebelum mengetuk palu.');
+            }
+
+            $this->close($locked->id, force: true);
+            $this->closeFinishedAuctions();
+
+            return $locked->fresh();
         });
     }
 

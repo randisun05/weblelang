@@ -20,8 +20,11 @@ const toggle = (item) => {
     if (selected.value[item.id] !== undefined) delete selected.value[item.id];
     else selected.value[item.id] = Math.max(1000, Math.round(item.reserve_price * 0.6 / 100000) * 100000 || item.reserve_price);
 };
+const buyNow = ref({});
 const addLots = () => {
-    addForm.lots = Object.entries(selected.value).map(([item_id, starting_price]) => ({ item_id: Number(item_id), starting_price }));
+    addForm.lots = Object.entries(selected.value).map(([item_id, starting_price]) => ({
+        item_id: Number(item_id), starting_price, buy_now_price: buyNow.value[item_id] || null,
+    }));
     addForm.post(route('admin.auctions.lots.store', props.auction.id), { preserveScroll: true, onSuccess: () => { selected.value = {}; picking.value = false; } });
 };
 
@@ -59,11 +62,13 @@ const settleDeposit = async (reg, decision, viaGateway = false) => {
     <AdminLayout :title="`${auction.code} — ${auction.title}`">
         <section class="card mb-6 flex flex-wrap items-center gap-4 p-5">
             <StatusBadge :status="auction.status" />
+            <StatusBadge :status="auction.method" />
             <div class="text-sm text-stone-600">{{ dateTime(auction.starts_at) }} – {{ dateTime(auction.ends_at) }}</div>
             <div class="text-sm text-stone-600">Premi {{ auction.buyer_premium_rate }}% · Anti-sniping {{ auction.anti_snipe_minutes }}/{{ auction.extend_minutes }} mnt
                 <template v-if="auction.deposit_amount"> · Jaminan {{ money(auction.deposit_amount) }}</template></div>
             <div class="ml-auto flex flex-wrap gap-2">
                 <Link v-if="auction.status.value !== 'draft'" :href="route('auctions.show', auction.slug)" class="btn-outline btn-sm" target="_blank">Lihat publik ↗</Link>
+                <Link v-if="auction.method.value === 'live'" :href="route('admin.auctions.live', auction.id)" class="btn btn-sm bg-red-600 text-white hover:bg-red-500">🎙️ Konsol juru lelang</Link>
                 <Link v-if="auction.editable" :href="route('admin.auctions.edit', auction.id)" class="btn-outline btn-sm">Ubah</Link>
                 <button v-if="auction.status.value === 'published'" class="btn-outline btn-sm" @click="unpublish">Tarik ke draf</button>
                 <button v-if="auction.status.value === 'draft'" class="btn-primary btn-sm" @click="publish">🚀 Terbitkan</button>
@@ -82,7 +87,7 @@ const settleDeposit = async (reg, decision, viaGateway = false) => {
                     <EmptyState v-if="!availableItems.length" title="Tidak ada barang berstatus 'Siap dilelang'" description="Setujui barang terlebih dahulu di menu Barang." icon="📦" />
                     <template v-else>
                         <table class="tbl">
-                            <thead><tr><th></th><th>Barang</th><th>Penitip</th><th>Limit</th><th>Harga awal</th></tr></thead>
+                            <thead><tr><th></th><th>Barang</th><th>Penitip</th><th>Limit</th><th>Harga awal</th><th v-if="auction.method.value === 'open'">Beli Langsung (opsional)</th></tr></thead>
                             <tbody class="divide-y divide-stone-100">
                                 <tr v-for="it in availableItems" :key="it.id">
                                     <td><input type="checkbox" class="rounded" :checked="selected[it.id] !== undefined" @change="toggle(it)" /></td>
@@ -90,6 +95,7 @@ const settleDeposit = async (reg, decision, viaGateway = false) => {
                                     <td>{{ it.consignor }}</td>
                                     <td>{{ money(it.reserve_price) }}</td>
                                     <td class="w-48"><MoneyInput v-if="selected[it.id] !== undefined" v-model="selected[it.id]" /></td>
+                                    <td v-if="auction.method.value === 'open'" class="w-48"><MoneyInput v-if="selected[it.id] !== undefined" v-model="buyNow[it.id]" placeholder="≥ harga limit" /></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -109,9 +115,11 @@ const settleDeposit = async (reg, decision, viaGateway = false) => {
                             <td class="font-bold">{{ lot.lot_number }}</td>
                             <td class="w-16"><div class="h-10 w-14 overflow-hidden rounded-lg"><LotImage :src="lot.image" class="text-xl" /></div></td>
                             <td><Link :href="route('admin.items.show', lot.item_id)" class="link">{{ lot.title }}</Link><br /><span class="font-mono text-xs text-stone-500">{{ lot.code }}</span></td>
-                            <td class="text-xs">{{ money(lot.starting_price) }}<br /><span class="text-stone-500">{{ money(lot.reserve_price) }}</span></td>
-                            <td><span class="font-semibold">{{ lot.bids_count ? money(lot.current_price) : '-' }}</span><br /><span class="text-xs text-stone-500">{{ lot.bids_count }} bid</span></td>
-                            <td>{{ lot.leader || '-' }}</td>
+                            <td class="text-xs">{{ money(lot.starting_price) }}<br /><span class="text-stone-500">{{ money(lot.reserve_price) }}</span>
+                                <span v-if="lot.buy_now_price" class="block text-emerald-700">BL {{ money(lot.buy_now_price) }}</span></td>
+                            <td v-if="lot.concealed"><span class="font-semibold">🔒 Tertutup</span><br /><span class="text-xs text-stone-500">{{ lot.bids_count }} amplop</span></td>
+                            <td v-else><span class="font-semibold">{{ lot.bids_count ? money(lot.current_price) : '-' }}</span><br /><span class="text-xs text-stone-500">{{ lot.bids_count }} bid<template v-if="lot.sold_via === 'buy_now'"> · beli langsung</template></span></td>
+                            <td>{{ lot.concealed ? '—' : lot.leader || '-' }}</td>
                             <td class="text-xs">{{ dateTime(lot.ends_at) }}</td>
                             <td><StatusBadge :status="lot.status" /></td>
                             <td class="space-x-2 text-right whitespace-nowrap">

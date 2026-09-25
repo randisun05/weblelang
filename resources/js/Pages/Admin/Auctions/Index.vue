@@ -19,7 +19,7 @@ defineProps({ auctions: Object });
                 <tbody class="divide-y divide-stone-100">
                     <tr v-for="a in auctions.data" :key="a.id">
                         <td class="font-mono text-xs">{{ a.code }}</td>
-                        <td class="font-medium text-ink">{{ a.title }}</td>
+                        <td class="font-medium text-ink">{{ a.title }}<br /><StatusBadge :status="a.method" /></td>
                         <td class="text-xs">{{ dateTime(a.starts_at) }}<br />s/d {{ dateTime(a.ends_at) }}</td>
                         <td>{{ a.lots_count }}</td><td>{{ a.sold_count }}</td><td>{{ a.bids_total }}</td>
                         <td><StatusBadge :status="a.status" /></td>

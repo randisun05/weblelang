@@ -2,6 +2,7 @@
 
 namespace App\Services\Auction;
 
+use App\Enums\AuctionMethod;
 use App\Enums\LotStatus;
 use App\Enums\RegistrationStatus;
 use App\Events\BidPlaced;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class BidService
 {
-    public function __construct(private BidIncrement $increments) {}
+    public function __construct(private BidIncrement $increments, private LotCloser $closer) {}
 
     /**
      * @param  int|null  $maxAmount  Batas auto-bid (proxy). Null = bid manual biasa.
@@ -35,6 +36,11 @@ class BidService
             $now = Carbon::now();
 
             $this->assertCanBid($lot, $user, $now);
+
+            if ($lot->method() === AuctionMethod::Sealed) {
+                return $this->placeSealed($lot, $user, $amount, $maxAmount, $now, $meta);
+            }
+
             $previousLeaderId = $lot->leader_id;
 
             if ($maxAmount !== null && $maxAmount < $amount) {
@@ -75,6 +81,65 @@ class BidService
             $this->resolveProxies($lot, $user, $userMax, $now, $meta);
 
             return $this->finish($lot, $now, $previousLeaderId);
+        });
+    }
+
+    /**
+     * Penawaran tertutup: satu penawaran efektif per peserta (yang terakhir), boleh diubah
+     * sebelum tenggat. Harga & pemimpin lot TIDAK diperbarui sampai lot ditutup, jadi tidak
+     * ada informasi yang bocor. Tanpa kelipatan, auto-bid, maupun anti-sniping.
+     */
+    private function placeSealed(Lot $lot, User $user, int $amount, ?int $maxAmount, Carbon $now, array $meta): Lot
+    {
+        if ($maxAmount !== null) {
+            throw new BidException('Auto-bid tidak berlaku pada penawaran tertutup.');
+        }
+
+        if ($amount < $lot->starting_price) {
+            throw new BidException('Penawaran minimal Rp '.number_format($lot->starting_price, 0, ',', '.').'.');
+        }
+
+        $ceiling = max($lot->starting_price, (int) $lot->item?->estimate_high) * (int) config('auction.max_jump_multiplier', 10);
+        if ($amount > $ceiling) {
+            throw new BidException('Nominal terlalu besar. Periksa kembali angka yang Anda ketik.');
+        }
+
+        $current = Bid::where('lot_id', $lot->id)->where('user_id', $user->id)->latest('id')->value('amount');
+        if ($current === $amount) {
+            throw new BidException('Nominal sama dengan penawaran Anda sebelumnya.');
+        }
+
+        $this->record($lot, $user->id, $amount, false, $now, $meta, updateLeader: false);
+        $lot->save();
+
+        return $lot;
+    }
+
+    /**
+     * Beli Langsung: lot langsung terjual ke pembeli pertama dengan harga beli langsung
+     * (hanya lelang terbuka, sebelum ada penawaran).
+     */
+    public function buyNow(Lot $lot, User $user, array $meta = []): Lot
+    {
+        return DB::transaction(function () use ($lot, $user, $meta) {
+            $lot = Lot::query()->whereKey($lot->getKey())->lockForUpdate()->firstOrFail();
+            $lot->load('auction', 'item.consignor');
+            $now = Carbon::now();
+
+            $this->assertCanBid($lot, $user, $now);
+
+            if (! $lot->buyNowAvailable()) {
+                throw new BidException('Beli Langsung tidak tersedia untuk lot ini (sudah ada penawaran atau tidak diaktifkan).');
+            }
+
+            $this->record($lot, $user->id, $lot->buy_now_price, false, $now, $meta);
+            $lot->sold_via = 'buy_now';
+            $lot->ends_at = $now;
+            $lot->save();
+
+            $this->closer->close($lot->id);
+
+            return $lot->fresh();
         });
     }
 
@@ -174,7 +239,7 @@ class BidService
         $this->record($lot, $challenger->id, min($challengerMax, $this->increments->after($rival->max_amount)), true, $now, $meta);
     }
 
-    private function record(Lot $lot, int $userId, int $amount, bool $isAuto, Carbon $now, array $meta): Bid
+    private function record(Lot $lot, int $userId, int $amount, bool $isAuto, Carbon $now, array $meta, bool $updateLeader = true): Bid
     {
         $prevHash = Bid::where('lot_id', $lot->id)->orderByDesc('id')->value('hash');
         $timestamp = $now->format('Y-m-d H:i:s');
@@ -191,8 +256,10 @@ class BidService
             'created_at' => $now,
         ]);
 
-        $lot->current_price = $amount;
-        $lot->leader_id = $userId;
+        if ($updateLeader) {
+            $lot->current_price = $amount;
+            $lot->leader_id = $userId;
+        }
         $lot->bids_count++;
 
         return $bid;
@@ -201,7 +268,14 @@ class BidService
     /** Anti-sniping + simpan + siarkan + beri tahu pemimpin sebelumnya yang terlampaui. */
     private function finish(Lot $lot, Carbon $now, ?int $previousLeaderId): Lot
     {
-        $window = (int) $lot->auction->anti_snipe_minutes;
+        // Anti-sniping hanya untuk lelang terbuka; pada lelang live juru lelang yang menentukan waktu.
+        $window = $lot->method() === AuctionMethod::Open ? (int) $lot->auction->anti_snipe_minutes : 0;
+
+        // Bid baru di lelang live membatalkan panggilan "pertama/kedua" juru lelang.
+        if ($lot->method() === AuctionMethod::Live) {
+            $lot->live_calls = 0;
+            $lot->live_called_at = null;
+        }
 
         if ($window > 0 && $now->diffInSeconds($lot->ends_at, false) < $window * 60) {
             $lot->ends_at = $now->copy()->addMinutes((int) $lot->auction->extend_minutes);

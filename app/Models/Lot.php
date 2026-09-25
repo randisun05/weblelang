@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AuctionMethod;
 use App\Enums\LotStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,8 +17,11 @@ class Lot extends Model
     use HasFactory;
 
     protected $fillable = [
-        'auction_id', 'item_id', 'lot_number', 'starting_price', 'reserve_price', 'starts_at', 'ends_at',
+        'auction_id', 'item_id', 'lot_number', 'starting_price', 'reserve_price', 'buy_now_price', 'starts_at', 'ends_at',
     ];
+
+    /** Metode lelang (terbuka/tertutup/live) menentukan perilaku lot, jadi sesi selalu dimuat. */
+    protected $with = ['auction'];
 
     protected function casts(): array
     {
@@ -31,6 +35,9 @@ class Lot extends Model
             'reserve_price' => 'integer',
             'current_price' => 'integer',
             'bids_count' => 'integer',
+            'buy_now_price' => 'integer',
+            'live_calls' => 'integer',
+            'live_called_at' => 'datetime',
         ];
     }
 
@@ -84,6 +91,34 @@ class Lot extends Model
     public function isLive(): bool
     {
         return $this->status === LotStatus::Live && $this->ends_at->isFuture();
+    }
+
+    public function method(): AuctionMethod
+    {
+        // Jika sesi dimuat dengan kolom terbatas, ambil ulang — jangan pernah menebak
+        // "terbuka" karena lot tertutup bisa bocor.
+        return $this->auction->method
+            ?? AuctionMethod::from((string) Auction::whereKey($this->auction_id)->value('method'));
+    }
+
+    /**
+     * Lot penawaran tertutup yang belum ditutup: nominal, jumlah, dan pemimpin
+     * TIDAK boleh ditampilkan kepada siapa pun, termasuk admin.
+     */
+    public function isConcealed(): bool
+    {
+        return $this->method() === AuctionMethod::Sealed
+            && in_array($this->status, [LotStatus::Scheduled, LotStatus::Live], true);
+    }
+
+    /** Tombol Beli Langsung hanya untuk lelang terbuka, lot aktif, dan sebelum ada penawaran. */
+    public function buyNowAvailable(): bool
+    {
+        return $this->buy_now_price !== null
+            && $this->method() === AuctionMethod::Open
+            && $this->status === LotStatus::Live
+            && $this->bids_count === 0
+            && $this->ends_at->isFuture();
     }
 
     public function reserveMet(): bool

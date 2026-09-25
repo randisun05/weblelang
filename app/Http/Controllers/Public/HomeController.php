@@ -29,6 +29,7 @@ class HomeController extends Controller
                     'slug' => $a->slug, 'title' => $a->title, 'starts_at' => $a->starts_at->toIso8601String(),
                     'ends_at' => $a->ends_at->toIso8601String(), 'lots_count' => $a->lots_count,
                     'status' => Present::status($a->status),
+                    'method' => Present::status($a->method),
                 ]),
             'categories' => Category::withCount('items')->orderBy('name')->get(['id', 'name', 'slug', 'icon']),
             'stats' => [

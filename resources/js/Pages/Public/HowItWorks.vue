@@ -19,6 +19,11 @@ const consignorSteps = [
     ['Dilelang', 'Barang tampil di sesi lelang dan dipromosikan ke peserta terverifikasi.'],
     ['Terima hasil', `Setelah pemenang membayar, hasil penjualan dikurangi komisi (mulai ${props.defaults.commission_rate}%) ditransfer ke rekening Anda.`],
 ];
+const methods = [
+    ['🔨', 'Lelang terbuka', 'Semua peserta melihat harga tertinggi dan saling menaikkan penawaran sampai waktu habis. Mendukung auto-bid dan perpanjangan waktu anti-sniping. Beberapa lot punya tombol ⚡ Beli Langsung yang tersedia sampai ada penawaran pertama.'],
+    ['✉️', 'Penawaran tertutup', 'Setiap peserta mengajukan satu harga terbaik tanpa melihat penawaran orang lain — bahkan admin tidak bisa melihatnya. Penawaran boleh diubah sebelum tenggat; setelah ditutup, penawaran tertinggi (yang memenuhi harga limit) menang. Jika sama, yang lebih dulu mengirim menang.'],
+    ['🎙️', 'Live dengan juru lelang', 'Juru lelang membuka lot satu per satu sambil disiarkan langsung. Anda menawar dari HP/laptop; juru lelang memanggil "pertama… kedua…" lalu mengetuk palu. Penawaran baru selalu membatalkan panggilan.'],
+];
 const faqs = [
     ['Apa itu harga limit?', 'Harga minimum yang disepakati dengan penitip. Jika penawaran tertinggi di bawah limit, barang tidak terjual.'],
     ['Apa itu auto-bid?', 'Anda menentukan batas maksimum; sistem otomatis menaikkan penawaran Anda sekecil mungkin setiap kali dilampaui, hingga batas itu.'],
@@ -56,6 +61,17 @@ const faqs = [
                     </ol>
                 </section>
             </div>
+
+            <section class="mt-12">
+                <h2 class="text-2xl font-bold text-ink">Metode lelang</h2>
+                <div class="mt-4 grid gap-4 md:grid-cols-3">
+                    <div v-for="[icon, title, text] in methods" :key="title" class="card p-5">
+                        <div class="text-3xl">{{ icon }}</div>
+                        <h3 class="mt-2 font-semibold text-ink">{{ title }}</h3>
+                        <p class="mt-1 text-sm text-stone-600">{{ text }}</p>
+                    </div>
+                </div>
+            </section>
 
             <section class="mt-12">
                 <h2 class="text-2xl font-bold text-ink">Pertanyaan umum</h2>

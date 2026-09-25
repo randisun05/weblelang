@@ -51,7 +51,7 @@ defineProps({ stats: Object, endingSoon: Array, recentBids: Array });
                             <p class="truncate font-medium text-ink">{{ b.title }}</p>
                             <p class="text-stone-500">{{ b.user }} <span v-if="b.is_auto" class="text-xs">(auto)</span> · {{ dateTime(b.at) }}</p>
                         </div>
-                        <span class="font-semibold">{{ money(b.amount) }}</span>
+                        <span class="font-semibold">{{ b.amount === null ? '🔒 tertutup' : money(b.amount) }}</span>
                     </li>
                 </ul>
                 <EmptyState v-else title="Belum ada penawaran" icon="📭" />

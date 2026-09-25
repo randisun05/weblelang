@@ -81,7 +81,7 @@ const steps = [
             <h2 class="mb-5 text-2xl font-bold text-ink">📅 Sesi lelang</h2>
             <div class="grid gap-5 md:grid-cols-3">
                 <Link v-for="a in auctions" :key="a.slug" :href="route('auctions.show', a.slug)" class="card p-5 transition hover:shadow-md">
-                    <StatusBadge :status="a.status" />
+                    <div class="flex flex-wrap gap-2"><StatusBadge :status="a.status" /><StatusBadge :status="a.method" /></div>
                     <h3 class="mt-3 text-lg font-semibold text-ink">{{ a.title }}</h3>
                     <p class="mt-1 text-sm text-stone-500">{{ a.lots_count }} lot · {{ dateTime(a.starts_at) }}</p>
                     <div class="mt-4 text-sm">

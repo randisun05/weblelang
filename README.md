@@ -45,6 +45,14 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
 - **Laporan & ekspor Excel**: ringkasan periode, Excel penjualan dan Excel settlement (siap untuk daftar transfer).
 - **Portal penitip** tanpa login: link bertanda tangan, kedaluwarsa, dan bisa dicabut; bisa dikirim via WhatsApp.
 
+**Metode lelang (dipilih per sesi)**
+- 🔨 **Terbuka** — harga naik terbuka, tutup otomatis sesuai jadwal, auto-bid, anti-sniping; opsi **⚡ Beli Langsung**
+  per lot (tersedia sampai penawaran pertama, tidak boleh di bawah harga limit).
+- ✉️ **Penawaran tertutup** — nominal, jumlah, dan pemimpin dirahasiakan dari semua pihak **termasuk admin** sampai lot ditutup;
+  peserta boleh mengubah penawaran sebelum tenggat, penawaran final tertinggi menang (seri → yang lebih dulu).
+- 🎙️ **Live juru lelang** — konsol juru lelang (buka lot → panggilan pertama → kedua → ketuk palu), siaran YouTube/Vimeo
+  tertanam, bid baru otomatis membatalkan panggilan sehingga palu tidak bisa "mendahului" penawaran terakhir.
+
 **Payment gateway (multi-driver)** — `app/Payments`
 - Driver **Midtrans** (Snap + Iris), **Xendit** (Invoice + Disbursement), dan **Simulator** (lokal/demo, ditolak di production);
   pilih lewat `PAYMENT_GATEWAY` / `PAYOUT_GATEWAY`. Gateway baru cukup menambah satu kelas driver.
@@ -95,7 +103,7 @@ biaya admin, batas bayar invoice, anti-sniping, wajib KYC, rekening transfer. Ga
 ## Pengujian
 
 ```bash
-php artisan test          # 70 tes: mesin bid, proxy, anti-sniping, penutupan, invoice/settlement,
+php artisan test          # 84 tes (termasuk metode tertutup, beli langsung, live): mesin bid, proxy, anti-sniping, penutupan, invoice/settlement,
                           # otorisasi, alur admin end-to-end, notifikasi, invoice kedaluwarsa, jaminan,
                           # PDF, Excel, portal penitip, payment gateway (Midtrans/Xendit/simulator),
                           # payout & refund otomatis

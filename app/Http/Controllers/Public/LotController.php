@@ -47,6 +47,8 @@ class LotController extends Controller
                     'deposit_amount' => $lot->auction->deposit_amount,
                     'anti_snipe_minutes' => $lot->auction->anti_snipe_minutes,
                     'extend_minutes' => $lot->auction->extend_minutes,
+                    'stream_embed' => $lot->auction->isLive() ? $lot->auction->streamEmbedUrl() : null,
+                    'stream_url' => $lot->auction->isLive() ? $lot->auction->stream_url : null,
                 ],
             ],
             'state' => Present::lotState($lot, $user?->id),
@@ -80,6 +82,11 @@ class LotController extends Controller
     /** Menutup lot secara "malas" bila cron terlambat, supaya pemenang langsung terlihat. */
     private function closeIfExpired(Lot $lot): void
     {
+        // Lot lelang live hanya dibuka/ditutup oleh juru lelang.
+        if ($lot->auction->isLive()) {
+            return;
+        }
+
         if (in_array($lot->status, [LotStatus::Live, LotStatus::Scheduled], true) && $lot->ends_at->isPast()) {
             app(LotCloser::class)->close($lot->id);
             $lot->refresh();

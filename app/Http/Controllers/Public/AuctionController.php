@@ -31,6 +31,7 @@ class AuctionController extends Controller
                 'lots_count' => $a->lots_count,
                 'deposit_amount' => $a->deposit_amount,
                 'status' => Present::status($a->status),
+                'method' => Present::status($a->method),
             ]);
 
         return Inertia::render('Public/Auctions/Index', ['auctions' => $auctions]);
@@ -53,8 +54,8 @@ class AuctionController extends Controller
             ->reorder()
             ->when(($filters['sort'] ?? 'lot') === 'lot', fn ($q) => $q->orderBy('lot_number'))
             ->when(($filters['sort'] ?? null) === 'ending', fn ($q) => $q->orderBy('ends_at'))
-            ->when(($filters['sort'] ?? null) === 'price_low', fn ($q) => $q->orderByRaw('case when bids_count > 0 then current_price else starting_price end asc'))
-            ->when(($filters['sort'] ?? null) === 'price_high', fn ($q) => $q->orderByRaw('case when bids_count > 0 then current_price else starting_price end desc'))
+            ->when(($filters['sort'] ?? null) === 'price_low', fn ($q) => $q->orderByRaw('case when current_price > 0 then current_price else starting_price end asc'))
+            ->when(($filters['sort'] ?? null) === 'price_high', fn ($q) => $q->orderByRaw('case when current_price > 0 then current_price else starting_price end desc'))
             ->paginate(24)->withQueryString()
             ->through(fn ($lot) => Present::lotCard($lot));
 
@@ -76,6 +77,11 @@ class AuctionController extends Controller
                 'anti_snipe_minutes' => $auction->anti_snipe_minutes,
                 'extend_minutes' => $auction->extend_minutes,
                 'status' => Present::status($auction->status),
+                'method' => Present::status($auction->method),
+                'method_description' => $auction->method->description(),
+                'stream_embed' => $auction->isLive() ? $auction->streamEmbedUrl() : null,
+                'stream_url' => $auction->isLive() ? $auction->stream_url : null,
+                'live_lot_id' => $auction->isLive() ? $auction->lots()->getQuery()->where('status', 'live')->value('id') : null,
             ],
             'registration' => $registration ? Present::status($registration->status) : null,
             'deposit' => $registration?->deposit_status ? Present::status($registration->deposit_status) : null,

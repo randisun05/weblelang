@@ -64,7 +64,7 @@ class BidderController extends Controller
                 'total' => $inv->total, 'status' => Present::status($inv->status),
             ]),
             'bids' => $user->bids()->with('lot.item:id,title')->latest('id')->limit(20)->get()->map(fn ($b) => [
-                'id' => $b->id, 'lot_id' => $b->lot_id, 'title' => $b->lot->item->title, 'amount' => $b->amount,
+                'id' => $b->id, 'lot_id' => $b->lot_id, 'title' => $b->lot->item->title, 'amount' => $b->lot->isConcealed() ? null : $b->amount,
                 'is_auto' => $b->is_auto, 'ip' => $b->ip, 'at' => $b->created_at->toIso8601String(),
             ]),
         ]);

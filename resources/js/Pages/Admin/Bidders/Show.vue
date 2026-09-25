@@ -51,7 +51,7 @@ const block = () => confirm(props.bidder.is_blocked ? 'Buka blokir peserta?' : '
                         <tbody class="divide-y divide-stone-100">
                             <tr v-for="b in bids" :key="b.id">
                                 <td><Link :href="route('lots.show', b.lot_id)" class="link">{{ b.title }}</Link></td>
-                                <td>{{ money(b.amount) }} <span v-if="b.is_auto" class="text-xs text-stone-500">auto</span></td>
+                                <td>{{ b.amount === null ? '🔒 tertutup' : money(b.amount) }} <span v-if="b.is_auto" class="text-xs text-stone-500">auto</span></td>
                                 <td class="font-mono text-xs">{{ b.ip }}</td>
                                 <td class="text-xs">{{ dateTime(b.at) }}</td>
                             </tr>

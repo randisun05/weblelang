@@ -51,8 +51,8 @@ Tiga sasaran utama:
 | **Proxy / auto-bid** | Peserta memasang penawaran maksimum; sistem menawar otomatis sekecil mungkin. | MVP |
 | **Penutupan bertahap (staggered close)** | Lot dalam satu sesi tutup bergiliran (mis. selang 1 menit) supaya peserta fokus. | MVP (opsi) |
 | **Uang jaminan** | Syarat ikut sesi; dikembalikan jika kalah, hangus jika wanprestasi. | MVP (manual verifikasi), Fase 2 (Midtrans + refund otomatis) |
-| **Penawaran tertutup (sealed bid)** | Seperti lelang.go.id "closed bidding" — penawaran tidak terlihat hingga penutupan. | Fase 2 (mode lot) |
-| **Beli sekarang (buy now)** | Harga langsung beli sebelum ada bid. | Fase 3 |
+| **Penawaran tertutup (sealed bid)** | Seperti lelang.go.id "closed bidding" — penawaran tidak terlihat hingga penutupan. | ✅ Sudah (metode sesi) |
+| **Beli sekarang (buy now)** | Harga langsung beli sebelum ada bid. | ✅ Sudah (opsi per lot) |
 | **Watchlist & notifikasi** | Email/WA saat dilampaui (*outbid*), 15 menit sebelum tutup, menang. | MVP (watchlist), Fase 2 (notifikasi) |
 | **Riwayat bid transparan** | Nama penawar disamarkan (mis. `Pes***12`). | MVP |
 | **Laporan untuk penitip** | Penitip bisa melihat status barang dan settlement. | Fase 2 (portal penitip) |
@@ -349,6 +349,15 @@ Catatan penyesuaian dari rencana:
 - **Sebelum go-live:** uji di sandbox masing-masing gateway, cocokkan kode bank di `config/payments.php`,
   daftarkan URL webhook, dan aktifkan fitur disbursement/Iris di akun gateway (perlu verifikasi bisnis).
 
-**Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), sealed bid, Laravel Reverb (websocket),
+**Metode lelang per sesi (sudah dikerjakan):**
+
+- **Terbuka** (default) + **Beli Langsung** per lot (sampai ada penawaran pertama, ≥ harga limit).
+- **Penawaran tertutup** (*sealed bid*): dirahasiakan dari semua pihak termasuk admin hingga ditutup; penawaran
+  final tiap peserta dihitung; seri → yang lebih dulu; harga limit tetap berlaku.
+- **Live juru lelang**: konsol buka lot → panggilan 1 → panggilan 2 → palu; bid baru mereset panggilan;
+  hanya satu lot live per sesi; siaran YouTube/Vimeo tertanam (domain lain hanya berupa tautan).
+- Total 84 tes otomatis.
+
+**Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), Laravel Reverb (websocket — mempercepat lelang live),
 reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
 **Fase 3:** buy now, live auction dengan juru lelang, PWA, multi-tenant, analitik harga.

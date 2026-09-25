@@ -36,6 +36,7 @@ Route::middleware('throttle:120,1')->group(function () {
 */
 Route::middleware('auth')->group(function () {
     Route::post('/lot/{lot}/bid', [User\BidController::class, 'store'])->middleware('throttle:bids')->name('lots.bid');
+    Route::post('/lot/{lot}/beli-sekarang', [User\BidController::class, 'buyNow'])->middleware('throttle:bids')->name('lots.buy-now');
     Route::post('/lot/{lot}/watch', [User\WatchlistController::class, 'toggle'])->name('lots.watch');
     Route::post('/lelang/{auction:slug}/daftar', [User\AuctionRegistrationController::class, 'store'])
         ->middleware('throttle:uploads')->name('auctions.register');
@@ -94,6 +95,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
         Route::post('/lelang/{auction}/lot/{lot}/batal', [Admin\AuctionController::class, 'cancelLot'])->name('auctions.lots.cancel');
         Route::post('/lelang/{auction}/terbitkan', [Admin\AuctionController::class, 'publish'])->name('auctions.publish');
         Route::post('/lelang/{auction}/tarik', [Admin\AuctionController::class, 'unpublish'])->name('auctions.unpublish');
+
+        // Konsol juru lelang (metode live).
+        Route::get('/lelang/{auction}/konsol', [Admin\LiveAuctionController::class, 'show'])->name('auctions.live');
+        Route::post('/lelang/{auction}/lot/{lot}/buka', [Admin\LiveAuctionController::class, 'open'])->name('auctions.live.open');
+        Route::post('/lelang/{auction}/lot/{lot}/panggil', [Admin\LiveAuctionController::class, 'call'])->name('auctions.live.call');
+        Route::post('/lelang/{auction}/lot/{lot}/palu', [Admin\LiveAuctionController::class, 'hammer'])->name('auctions.live.hammer');
 
         Route::post('/pendaftaran/{registration}', [Admin\RegistrationController::class, 'decide'])->name('registrations.decide');
         Route::post('/pendaftaran/{registration}/jaminan', [Admin\RegistrationController::class, 'settleDeposit'])->name('registrations.deposit');

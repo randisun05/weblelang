@@ -49,7 +49,7 @@ class DashboardController extends Controller
                     'user' => $b->user->name,
                     'lot_id' => $b->lot_id,
                     'title' => $b->lot->item->title,
-                    'amount' => $b->amount,
+                    'amount' => $b->lot->isConcealed() ? null : $b->amount,
                     'is_auto' => $b->is_auto,
                     'at' => $b->created_at->toIso8601String(),
                 ]),

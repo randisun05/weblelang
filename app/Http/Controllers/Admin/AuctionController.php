@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AuctionMethod;
 use App\Enums\AuctionStatus;
 use App\Enums\ItemStatus;
 use App\Enums\LotStatus;
@@ -18,6 +19,8 @@ use App\Support\Present;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +37,7 @@ class AuctionController extends Controller
                     'id' => $a->id, 'code' => $a->code, 'title' => $a->title,
                     'starts_at' => $a->starts_at->toIso8601String(), 'ends_at' => $a->ends_at->toIso8601String(),
                     'lots_count' => $a->lots_count, 'sold_count' => $a->sold_count, 'bids_total' => (int) $a->bids_total,
-                    'status' => Present::status($a->status),
+                    'status' => Present::status($a->status), 'method' => Present::status($a->method),
                 ]),
         ]);
     }
@@ -48,6 +51,7 @@ class AuctionController extends Controller
                 'anti_snipe_minutes' => config('auction.anti_snipe_minutes'),
                 'extend_minutes' => config('auction.extend_minutes'),
             ],
+            'methods' => $this->methodOptions(),
         ]);
     }
 
@@ -71,6 +75,8 @@ class AuctionController extends Controller
                 'deposit_amount' => $auction->deposit_amount, 'buyer_premium_rate' => $auction->buyer_premium_rate,
                 'anti_snipe_minutes' => $auction->anti_snipe_minutes, 'extend_minutes' => $auction->extend_minutes,
                 'stagger_seconds' => $auction->stagger_seconds,
+                'method' => Present::status($auction->method),
+                'stream_url' => $auction->stream_url,
                 'status' => Present::status($auction->status),
                 'editable' => in_array($auction->status, [AuctionStatus::Draft, AuctionStatus::Published], true),
             ],
@@ -83,9 +89,13 @@ class AuctionController extends Controller
                 'image' => $lot->item->images->first()?->url(),
                 'starting_price' => $lot->starting_price,
                 'reserve_price' => $lot->reserve_price,
-                'current_price' => $lot->current_price,
+                'buy_now_price' => $lot->buy_now_price,
+                // Lot tertutup: admin pun hanya melihat jumlah amplop, bukan nominal/pemimpin.
+                'concealed' => $lot->isConcealed(),
+                'current_price' => $lot->isConcealed() ? null : $lot->current_price,
                 'bids_count' => $lot->bids_count,
-                'leader' => $lot->leader?->name,
+                'leader' => $lot->isConcealed() ? null : $lot->leader?->name,
+                'sold_via' => $lot->sold_via,
                 'ends_at' => $lot->ends_at->toIso8601String(),
                 'status' => Present::status($lot->status),
             ]),
@@ -113,11 +123,14 @@ class AuctionController extends Controller
 
         return Inertia::render('Admin/Auctions/Form', [
             'auction' => $auction->only(['id', 'title', 'description', 'deposit_amount', 'buyer_premium_rate',
-                'anti_snipe_minutes', 'extend_minutes', 'stagger_seconds']) + [
+                'anti_snipe_minutes', 'extend_minutes', 'stagger_seconds', 'stream_url']) + [
+                    'method' => $auction->method->value,
+                    'has_bids' => $auction->lots()->where('bids_count', '>', 0)->exists(),
                     'starts_at' => $auction->starts_at->format('Y-m-d\TH:i'),
                     'ends_at' => $auction->ends_at->format('Y-m-d\TH:i'),
                 ],
             'defaults' => [],
+            'methods' => $this->methodOptions(),
         ]);
     }
 
@@ -125,8 +138,16 @@ class AuctionController extends Controller
     {
         abort_unless(in_array($auction->status, [AuctionStatus::Draft, AuctionStatus::Published], true), 403);
 
-        DB::transaction(function () use ($request, $auction) {
-            $auction->update($this->validated($request));
+        $data = $this->validated($request);
+
+        $data['method'] ??= $auction->method->value;
+
+        if ($data['method'] !== $auction->method->value && $auction->lots()->where('bids_count', '>', 0)->exists()) {
+            return back()->with('error', 'Metode lelang tidak dapat diubah karena sudah ada penawaran masuk.');
+        }
+
+        DB::transaction(function () use ($data, $auction) {
+            $auction->update($data);
             $this->resyncLotTimes($auction);
         });
         AuditLogger::log('auction.updated', $auction);
@@ -142,6 +163,7 @@ class AuctionController extends Controller
             'lots' => ['required', 'array', 'min:1', 'max:200'],
             'lots.*.item_id' => ['required', 'integer', 'distinct'],
             'lots.*.starting_price' => ['required', 'integer', 'min:1000'],
+            'lots.*.buy_now_price' => ['nullable', 'integer', 'gt:lots.*.starting_price'],
         ]);
 
         $added = DB::transaction(function () use ($data, $auction) {
@@ -156,11 +178,18 @@ class AuctionController extends Controller
                     continue;
                 }
 
+                // Beli Langsung hanya untuk lelang terbuka dan tidak boleh di bawah harga limit penitip.
+                $buyNow = $auction->method === AuctionMethod::Open ? ($row['buy_now_price'] ?? null) : null;
+                if ($buyNow !== null && $buyNow < $item->reserve_price) {
+                    throw ValidationException::withMessages(['lots' => "Harga Beli Langsung {$item->code} di bawah harga limit penitip."]);
+                }
+
                 $auction->lots()->create([
                     'item_id' => $item->id,
                     'lot_number' => ++$number,
                     'starting_price' => $row['starting_price'],
                     'reserve_price' => $item->reserve_price,
+                    'buy_now_price' => $buyNow,
                     'starts_at' => $auction->starts_at,
                     'ends_at' => $auction->ends_at,
                 ]);
@@ -264,6 +293,15 @@ class AuctionController extends Controller
             'anti_snipe_minutes' => ['required', 'integer', 'min:0', 'max:60'],
             'extend_minutes' => ['required', 'integer', 'min:0', 'max:60'],
             'stagger_seconds' => ['required', 'integer', 'min:0', 'max:600'],
+            'method' => ['sometimes', Rule::enum(AuctionMethod::class)],
+            'stream_url' => ['nullable', 'url:https', 'max:255'],
         ]);
+    }
+
+    private function methodOptions(): array
+    {
+        return array_map(fn (AuctionMethod $m) => [
+            'value' => $m->value, 'label' => $m->label(), 'description' => $m->description(),
+        ], AuctionMethod::cases());
     }
 }

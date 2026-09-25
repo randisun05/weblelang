@@ -41,7 +41,7 @@ const sum = (rows, status) => rows.filter((r) => r.status.value === status).redu
                         <StatusBadge :status="item.status" />
                         <template v-if="item.lot">
                             <p class="mt-1 text-stone-600">{{ item.lot.auction }}</p>
-                            <p class="font-semibold text-ink">{{ money(item.lot.current_price) }} <span class="font-normal text-stone-500">· {{ item.lot.bids_count }} bid</span></p>
+                            <p class="font-semibold text-ink">{{ money(item.lot.current_price) }} <span class="font-normal text-stone-500">· {{ item.lot.bids_count === null ? 'penawaran tertutup' : `${item.lot.bids_count} bid` }}</span></p>
                             <Link v-if="item.lot.public" :href="route('lots.show', item.lot.id)" class="link text-xs">Lihat halaman lelang</Link>
                         </template>
                     </div>

@@ -33,19 +33,38 @@ const payDeposit = () => {
         <section class="border-b border-stone-200 bg-white">
             <div class="mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                    <div class="flex items-center gap-2"><StatusBadge :status="auction.status" /><span class="text-xs text-stone-400">{{ auction.code }}</span></div>
+                    <div class="flex items-center gap-2">
+                        <StatusBadge :status="auction.status" /><StatusBadge :status="auction.method" />
+                        <span class="text-xs text-stone-400">{{ auction.code }}</span>
+                    </div>
                     <h1 class="mt-2 font-display text-3xl font-extrabold text-ink">{{ auction.title }}</h1>
                     <p class="mt-2 max-w-3xl whitespace-pre-line text-stone-600">{{ auction.description }}</p>
                     <div class="mt-4 flex flex-wrap gap-2 text-xs">
                         <span class="rounded-full bg-stone-100 px-3 py-1">🗓 {{ dateTime(auction.starts_at) }} – {{ dateTime(auction.ends_at) }}</span>
                         <span class="rounded-full bg-stone-100 px-3 py-1">💰 Premi pembeli {{ auction.buyer_premium_rate }}%</span>
-                        <span v-if="auction.anti_snipe_minutes" class="rounded-full bg-stone-100 px-3 py-1">⏱ Bid di {{ auction.anti_snipe_minutes }} menit terakhir memperpanjang {{ auction.extend_minutes }} menit</span>
+                        <span class="rounded-full bg-stone-100 px-3 py-1" :title="auction.method_description">ℹ️ {{ auction.method_description }}</span>
+                        <span v-if="auction.anti_snipe_minutes && auction.method.value === 'open'" class="rounded-full bg-stone-100 px-3 py-1">⏱ Bid di {{ auction.anti_snipe_minutes }} menit terakhir memperpanjang {{ auction.extend_minutes }} menit</span>
                         <span v-if="auction.deposit_amount" class="rounded-full bg-amber-100 px-3 py-1 text-amber-900">🔒 Jaminan {{ money(auction.deposit_amount) }}</span>
                     </div>
                 </div>
                 <div class="space-y-3">
                     <Countdown v-if="auction.status.value === 'live'" :to="auction.ends_at" label="Sesi berakhir dalam" />
                     <Countdown v-else-if="auction.status.value === 'published'" :to="auction.starts_at" label="Sesi dimulai dalam" />
+                </div>
+            </div>
+
+            <!-- Siaran lelang live -->
+            <div v-if="auction.method.value === 'live' && (auction.stream_embed || auction.stream_url || auction.live_lot_id)" class="mx-auto max-w-7xl px-4 pb-6">
+                <div class="grid gap-4 md:grid-cols-[2fr_1fr]">
+                    <iframe v-if="auction.stream_embed" :src="auction.stream_embed" class="aspect-video w-full rounded-2xl" allow="autoplay; encrypted-media" allowfullscreen title="Siaran langsung" />
+                    <a v-else-if="auction.stream_url" :href="auction.stream_url" target="_blank" rel="noopener" class="card flex items-center justify-center p-6 font-semibold text-red-600">🔴 Tonton siaran juru lelang ↗</a>
+                    <div class="card flex flex-col justify-center p-6 text-center">
+                        <template v-if="auction.live_lot_id">
+                            <p class="text-sm font-bold text-red-600"><span class="animate-live">●</span> Lot sedang dilelang</p>
+                            <Link :href="route('lots.show', auction.live_lot_id)" class="btn-primary mt-3">Ikut menawar sekarang →</Link>
+                        </template>
+                        <p v-else class="text-sm text-stone-500">Juru lelang belum membuka lot. Tetap di halaman ini.</p>
+                    </div>
                 </div>
             </div>
 

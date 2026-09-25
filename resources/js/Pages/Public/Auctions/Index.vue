@@ -23,6 +23,7 @@ defineProps({ auctions: Object });
                     <div class="flex-1">
                         <div class="flex items-center gap-2">
                             <StatusBadge :status="a.status" />
+                            <StatusBadge :status="a.method" />
                             <span class="text-xs text-stone-400">{{ a.code }}</span>
                         </div>
                         <h2 class="mt-2 text-lg font-semibold text-ink">{{ a.title }}</h2>

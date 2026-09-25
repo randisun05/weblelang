@@ -68,7 +68,7 @@ const destroy = () => confirm('Hapus barang ini?') && router.delete(route('admin
                         <tbody class="divide-y divide-stone-100">
                             <tr v-for="l in item.lots" :key="l.id">
                                 <td><Link :href="route('admin.auctions.show', l.auction_id)" class="link">{{ l.auction }}</Link></td>
-                                <td>{{ l.lot_number }}</td><td>{{ money(l.current_price) }}</td><td>{{ l.bids_count }}</td>
+                                <td>{{ l.lot_number }}</td><td>{{ l.current_price === null ? '🔒' : money(l.current_price) }}</td><td>{{ l.bids_count ?? '🔒' }}</td>
                                 <td><StatusBadge :status="l.status" /></td>
                             </tr>
                         </tbody>

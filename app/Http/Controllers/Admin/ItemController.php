@@ -81,7 +81,7 @@ class ItemController extends Controller
 
     public function show(Item $item): Response
     {
-        $item->load('consignor', 'category', 'images', 'inspector:id,name', 'lots.auction:id,title,code');
+        $item->load('consignor', 'category', 'images', 'inspector:id,name', 'lots.auction:id,title,code,method,status');
 
         return Inertia::render('Admin/Items/Show', [
             'item' => [
@@ -111,8 +111,8 @@ class ItemController extends Controller
                     'auction' => $lot->auction->title,
                     'auction_id' => $lot->auction_id,
                     'lot_number' => $lot->lot_number,
-                    'current_price' => $lot->current_price,
-                    'bids_count' => $lot->bids_count,
+                    'current_price' => $lot->isConcealed() ? null : $lot->current_price,
+                    'bids_count' => $lot->isConcealed() ? null : $lot->bids_count,
                     'status' => Present::status($lot->status),
                 ]),
             ],
