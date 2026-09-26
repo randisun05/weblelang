@@ -1,0 +1,92 @@
+name: Deploy
+
+# Deploy otomatis ke server produksi setelah CI di branch main hijau, atau manual dari tab Actions.
+# Tidak melakukan apa-apa sampai secrets/variables di bawah diisi (Settings → Secrets and variables → Actions):
+#   secrets   DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (private key), DEPLOY_KNOWN_HOSTS (hasil `ssh-keyscan HOST`)
+#   variables DEPLOY_MODE = vps | docker, DEPLOY_PATH (docker: folder repo di server), DEPLOY_PORT (opsional),
+#             APP_URL (untuk cek /health setelah deploy)
+# Lihat docs/DEPLOY.md bagian "Deploy otomatis".
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Hanya commit yang lolos CI (push ke main), atau dijalankan manual.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    # Tambahkan "required reviewers" pada environment ini bila deploy perlu persetujuan.
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_MODE: ${{ vars.DEPLOY_MODE }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+      APP_URL: ${{ vars.APP_URL }}
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Periksa konfigurasi
+        id: config
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_USER" ] || [ -z "$DEPLOY_MODE" ]; then
+            echo "::notice::Deploy otomatis belum dikonfigurasi (DEPLOY_HOST, DEPLOY_USER, DEPLOY_MODE). Dilewati."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.enabled == 'true'
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Siapkan SSH
+        if: steps.config.outputs.enabled == 'true'
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$KNOWN_HOSTS" ]; then
+            echo "::error::Isi secret DEPLOY_KNOWN_HOSTS (ssh-keyscan -p PORT HOST) agar kunci server terverifikasi."
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host target\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking yes\n' \
+            "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_PORT" > ~/.ssh/config
+
+      - name: Deploy (VPS tanpa Docker)
+        if: steps.config.outputs.enabled == 'true' && env.DEPLOY_MODE == 'vps'
+        # Skrip dari commit ini dikirim lewat stdin, jadi server selalu memakai versi deploy.sh terbaru.
+        run: ssh target "DEPLOY_SHA=$SHA bash -s -- main" < deploy/deploy.sh
+
+      - name: Deploy (Docker)
+        if: steps.config.outputs.enabled == 'true' && env.DEPLOY_MODE == 'docker'
+        run: |
+          if [ -z "$DEPLOY_PATH" ]; then echo "::error::Isi variable DEPLOY_PATH (folder repo di server)."; exit 1; fi
+          ssh target "set -e; cd '$DEPLOY_PATH'; git fetch --quiet origin main; git checkout --quiet --detach '$SHA'; \
+            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans; docker image prune -f >/dev/null"
+
+      - name: Cek /health
+        if: steps.config.outputs.enabled == 'true' && env.APP_URL != ''
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS "$APP_URL/health" >/dev/null; then echo "✓ $APP_URL sehat"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::$APP_URL/health tidak sehat setelah deploy."
+          curl -sS "$APP_URL/health" || true
+          exit 1

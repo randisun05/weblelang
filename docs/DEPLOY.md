@@ -63,6 +63,26 @@ Paket: `nginx`, `php8.3-fpm` + ekstensi `mysql gd intl zip mbstring xml curl`, `
 | `LEGAL_*` | identitas penyelenggara untuk Syarat & Ketentuan / Kebijakan Privasi |
 | `SERVER_NAME` | (Docker) domain untuk HTTPS otomatis |
 
+## Deploy otomatis (GitHub Actions)
+
+Workflow `.github/workflows/deploy.yml` men-deploy **setiap commit di `main` yang lolos CI** (atau manual lewat
+tab *Actions → Deploy → Run workflow*). Selama belum dikonfigurasi, workflow hanya menampilkan catatan dan dilewati.
+
+1. Di server, buat user deploy dengan SSH key khusus (tanpa passphrase). Untuk mode VPS, user ini perlu hak
+   `sudo systemctl reload php8.3-fpm` tanpa kata sandi (lewat `/etc/sudoers.d/`); untuk mode Docker, masukkan ke grup `docker`.
+2. Deploy pertama tetap manual (bagian A atau B di atas), supaya `.env` dan database siap.
+3. Di GitHub → *Settings → Secrets and variables → Actions*:
+   - **Secrets**: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (isi private key), `DEPLOY_KNOWN_HOSTS`
+     (hasil `ssh-keyscan -p 22 HOST`; kunci server diverifikasi, bukan diterima begitu saja).
+   - **Variables**: `DEPLOY_MODE` = `vps` atau `docker`, `DEPLOY_PATH` (mode docker: folder clone repo di server),
+     `DEPLOY_PORT` (bila bukan 22), `APP_URL` (untuk cek `/health` setelah deploy).
+4. Opsional: di *Settings → Environments → production* tambahkan *required reviewers* agar setiap deploy perlu persetujuan.
+
+Mode `vps` menjalankan `deploy/deploy.sh` versi commit tersebut (rilis baru tanpa downtime, dikunci ke commit
+yang lolos CI). Mode `docker` menjalankan `git checkout <commit>` lalu `docker compose up -d --build`.
+Kalau `/health` tidak sehat dalam ±3 menit, workflow ditandai gagal. Di mode VPS, kembalikan rilis sebelumnya dengan
+mengarahkan symlink `current` ke folder rilis lama.
+
 ## Real-time (Laravel Reverb, opsional)
 
 Tanpa Reverb, halaman lot memperbarui harga dengan polling tiap beberapa detik. Dengan Reverb,

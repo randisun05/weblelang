@@ -373,4 +373,5 @@ reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
 - Turnstile, verifikasi email wajib sebelum menawar, deteksi indikasi shill bidding.
 - SEO: meta/Open Graph server-side, JSON-LD Product/Event, sitemap.xml, robots.txt, watermark foto barang.
 - Notifikasi WhatsApp multi-penyedia (Fonnte, Wablas) untuk peserta, penitip, dan calon penitip; bisa dimatikan per orang.
+- Deploy otomatis GitHub Actions (SSH, mode VPS atau Docker, cek `/health`).
 - Total 135 tes otomatis.

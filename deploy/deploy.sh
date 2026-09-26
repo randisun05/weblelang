@@ -8,6 +8,7 @@
 #   /var/www/weblelang/current -> releases/…  symlink rilis aktif
 #
 # Pemakaian (di server, sebagai user deploy):  bash deploy.sh [branch]
+# DEPLOY_SHA=<commit> mengunci rilis ke commit tertentu (dipakai GitHub Actions: hanya commit yang lolos CI).
 set -euo pipefail
 
 APP_DIR=/var/www/weblelang
@@ -19,6 +20,10 @@ KEEP=5
 echo "→ Mengambil kode ($BRANCH)"
 git clone --depth 1 --branch "$BRANCH" "$REPO" "$RELEASE"
 cd "$RELEASE"
+if [ -n "${DEPLOY_SHA:-}" ]; then
+    git fetch --depth 1 origin "$DEPLOY_SHA"
+    git checkout --quiet "$DEPLOY_SHA"
+fi
 
 echo "→ Menautkan .env & storage bersama"
 ln -s "$APP_DIR/shared/.env" .env

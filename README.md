@@ -84,7 +84,7 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
   tagihan & jaminan; penitip menerima kabar barang terjual & dana ditransfer; calon penitip menerima status pengajuan.
   Peserta bisa mematikannya di profil. Uji dengan `php artisan whatsapp:test 08xxxxxxxxxx`.
 - **Deploy**: Docker (FrankenPHP + HTTPS otomatis) atau VPS (Nginx + Supervisor), backup terenkripsi,
-  `/health`, Sentry, `php artisan payments:check`. Lihat `docs/DEPLOY.md` dan `docs/UJI-SANDBOX.md`.
+  `/health`, Sentry, `php artisan payments:check`, dan deploy otomatis dari GitHub Actions setelah CI hijau. Lihat `docs/DEPLOY.md` dan `docs/UJI-SANDBOX.md`.
 
 ## Menjalankan secara lokal
 
