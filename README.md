@@ -86,6 +86,8 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
 - **Deploy**: Docker (FrankenPHP + HTTPS otomatis) atau VPS (Nginx + Supervisor), backup terenkripsi,
   `/health`, Sentry, `php artisan payments:check`, dan deploy otomatis dari GitHub Actions setelah CI hijau. Lihat `docs/DEPLOY.md` dan `docs/UJI-SANDBOX.md`.
 
+> Langkah yang masih tertunda sebelum go-live: lihat `docs/TERTUNDA.md`.
+
 ## Menjalankan secara lokal
 
 ```bash
