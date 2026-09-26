@@ -1,0 +1,31 @@
+{
+	frankenphp
+	order php_server before file_server
+}
+
+# SERVER_NAME=lelang.domainanda.id → sertifikat HTTPS Let's Encrypt otomatis.
+# SERVER_NAME=:80 → HTTP biasa (mis. di belakang Cloudflare/load balancer).
+{$SERVER_NAME::80} {
+	root * /app/public
+	encode zstd br gzip
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# Aset hasil build Vite berversi hash → cache panjang.
+	@build path /build/*
+	header @build Cache-Control "public, max-age=31536000, immutable"
+
+	request_body {
+		max_size 64MB
+	}
+
+	# Websocket Laravel Reverb (service `reverb`, profil compose "realtime").
+	# Hanya /app/* yang dibuka ke publik; API publish (/apps/*) dipanggil aplikasi lewat jaringan internal.
+	@websocket path /app/*
+	reverse_proxy @websocket {$REVERB_UPSTREAM:reverb:8080}
+
+	php_server
+}

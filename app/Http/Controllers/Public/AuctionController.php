@@ -8,6 +8,7 @@ use App\Models\Auction;
 use App\Models\Category;
 use App\Payments\PaymentManager;
 use App\Support\Present;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,6 +34,8 @@ class AuctionController extends Controller
                 'status' => Present::status($a->status),
                 'method' => Present::status($a->method),
             ]);
+
+        Seo::set(title: 'Jadwal Lelang', description: 'Jadwal sesi lelang online yang sedang berjalan dan akan datang. Semua barang titipan sudah diperiksa petugas.');
 
         return Inertia::render('Public/Auctions/Index', ['auctions' => $auctions]);
     }
@@ -62,6 +65,8 @@ class AuctionController extends Controller
         $registration = $request->user()
             ? $auction->registrations()->where('user_id', $request->user()->id)->first()
             : null;
+
+        Seo::auction($auction, $auction->lots()->getQuery()->orderBy('lot_number')->first()?->item?->coverUrl());
 
         return Inertia::render('Public/Auctions/Show', [
             'auction' => [

@@ -9,6 +9,7 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 import LotImage from '@/Components/LotImage.vue';
 import MoneyInput from '@/Components/MoneyInput.vue';
 import { syncServerTime } from '@/lib/clock';
+import { connected, onLotUpdated } from '@/lib/realtime';
 import { dateTime, money } from '@/lib/format';
 
 const props = defineProps({ lot: Object, state: Object, viewer: Object, pollSeconds: Number });
@@ -23,9 +24,13 @@ const extendedFlash = ref(false);
 
 syncServerTime(props.state.server_time);
 
-// ---- Polling state (fallback bila websocket tidak aktif) ----
+// ---- Pembaruan state: websocket (Reverb) bila aktif, polling sebagai cadangan ----
 let poller;
+let stopRealtime;
+let inflight = false;
 const refresh = async () => {
+    if (inflight) return;
+    inflight = true;
     try {
         const { data } = await axios.get(route('lots.state', props.lot.id));
         if (data.extended_count > live.value.extended_count) {
@@ -36,14 +41,29 @@ const refresh = async () => {
         syncServerTime(data.server_time);
     } catch {
         /* abaikan gangguan jaringan sesaat */
+    } finally {
+        inflight = false;
     }
 };
+let ticks = 0;
 onMounted(() => {
-    // Lelang live butuh pembaruan lebih cepat (panggilan juru lelang).
+    if (!['live', 'scheduled'].includes(live.value.status.value)) return;
+
+    // Event websocket hanya sinyal "ada perubahan"; datanya tetap diambil dari server.
+    stopRealtime = onLotUpdated(`lots.${props.lot.id}`, refresh);
+
+    // Lelang live butuh pembaruan lebih cepat (panggilan juru lelang). Saat websocket
+    // tersambung, polling tetap jalan tapi jauh lebih jarang (jaga-jaga event terlewat).
     const seconds = props.state.method.value === 'live' ? 2 : props.pollSeconds || 4;
-    if (['live', 'scheduled'].includes(live.value.status.value)) poller = setInterval(refresh, seconds * 1000);
+    poller = setInterval(() => {
+        ticks++;
+        if (!connected.value || ticks % 8 === 0) refresh();
+    }, seconds * 1000);
 });
-onBeforeUnmount(() => clearInterval(poller));
+onBeforeUnmount(() => {
+    clearInterval(poller);
+    stopRealtime?.();
+});
 
 watch(() => props.state, (s) => (live.value = { ...s }));
 watch(() => live.value.minimum_bid, (min) => {
@@ -60,6 +80,7 @@ const blocker = computed(() => {
     if (!isLive.value) return null;
     if (!props.viewer) return { text: 'Masuk atau daftar untuk mulai menawar.', href: route('login'), cta: 'Masuk' };
     if (props.viewer.is_backoffice) return { text: 'Akun petugas tidak dapat menawar.' };
+    if (!props.viewer.email_verified) return { text: 'Verifikasi alamat email Anda terlebih dahulu (cek kotak masuk).', href: route('verification.notice'), cta: 'Kirim ulang email verifikasi' };
     if (!props.viewer.kyc_verified) return { text: 'Verifikasi identitas (KTP) diperlukan sebelum menawar.', href: route('user.profile'), cta: 'Verifikasi sekarang' };
     if (!['approved', 'not_required'].includes(props.viewer.registration)) {
         return { text: 'Sesi ini mensyaratkan uang jaminan. Daftar di halaman sesi lelang.', href: route('auctions.show', props.lot.auction.slug), cta: 'Daftar sesi' };
@@ -122,7 +143,7 @@ const toggleWatch = () => router.post(route('lots.watch', props.lot.id), {}, { p
 </script>
 
 <template>
-    <Head :title="lot.item.title" />
+    <Head :title="`Lot ${lot.lot_number}: ${lot.item.title}`" />
     <PublicLayout>
         <div class="mx-auto max-w-7xl px-4 py-6">
             <nav class="mb-4 text-sm text-stone-500">

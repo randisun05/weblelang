@@ -266,7 +266,7 @@ class ItemController extends Controller
 
         foreach ($request->file('images', []) as $file) {
             $item->images()->create([
-                'path' => $images->store($file, 'items/'.$item->id),
+                'path' => $images->store($file, 'items/'.$item->id, watermark: true),
                 'sort_order' => ++$order,
             ]);
         }

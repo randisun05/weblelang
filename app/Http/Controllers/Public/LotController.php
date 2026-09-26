@@ -8,6 +8,7 @@ use App\Models\Item;
 use App\Models\Lot;
 use App\Services\Auction\LotCloser;
 use App\Support\Present;
+use App\Support\Seo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,7 @@ class LotController extends Controller
 
         $lot->load(['auction', 'item.images', 'item.category']);
         $user = $request->user();
+        Seo::lot($lot);
 
         return Inertia::render('Public/Lots/Show', [
             'lot' => [
@@ -56,6 +58,7 @@ class LotController extends Controller
                 'watching' => $user->watchlist()->whereKey($lot->id)->exists(),
                 'auto_bid' => $lot->autoBids()->where('user_id', $user->id)->where('is_active', true)->value('max_amount'),
                 'kyc_verified' => $user->isKycVerified(),
+                'email_verified' => $user->hasVerifiedEmail(),
                 'is_backoffice' => $user->isBackoffice(),
                 'registration' => $lot->auction->requiresRegistration()
                     ? $lot->auction->registrations()->where('user_id', $user->id)->value('status')

@@ -15,6 +15,7 @@ const groups = computed(() => [
     {
         title: 'Barang Titipan',
         items: [
+            { label: 'Pengajuan Titip', icon: '📮', route: 'admin.consign-requests.*', href: 'admin.consign-requests.index' },
             { label: 'Penitip', icon: '🤝', route: 'admin.consignors.*', href: 'admin.consignors.index' },
             { label: 'Barang', icon: '📦', route: 'admin.items.*', href: 'admin.items.index' },
             isAdmin.value && { label: 'Kategori', icon: '🏷️', route: 'admin.categories.*', href: 'admin.categories.index' },
@@ -25,6 +26,7 @@ const groups = computed(() => [
         items: [
             { label: 'Sesi Lelang', icon: '🔨', route: 'admin.auctions.*', href: 'admin.auctions.index' },
             { label: 'Peserta & KYC', icon: '🪪', route: 'admin.bidders.*', href: 'admin.bidders.index' },
+            { label: 'Kecurigaan', icon: '🚩', route: 'admin.fraud.*', href: 'admin.fraud.index' },
         ],
     },
     isAdmin.value && {

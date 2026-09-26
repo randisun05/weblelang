@@ -25,7 +25,16 @@ Full plan/research: `docs/RENCANA.md`. Stack mirrors `randisun05/asprov1` (web-a
   webhook → fulfil Invoice/AuctionRegistration) and `PayoutService` (Settlement payout, deposit refunds; one active
   payout per payable) are generic over morph `payable`. Webhooks: `/payments/webhook/{gateway}`, `/payouts/webhook/{gateway}`.
   Tests fake HTTP with `Http::fake`; never call real gateways in tests.
-- Notifications (`app/Notifications`) extend `AuctionNotification` (mail + database, queued after commit) —
+- Real-time: `App\Events\LotUpdated` (Reverb) is only a "changed" signal (lot_id + reason); clients refetch
+  `lots.state`, so never put prices in broadcast payloads. Frontend helper `resources/js/lib/realtime.js`.
+- SEO: controllers call `App\Support\Seo::set()/lot()/auction()`; rendered in `app.blade.php`. Sitemap/robots in
+  `Public\SeoController`. Public item photos go through `ImageService` with `watermark: true`.
+- Online consignment intake: `ConsignmentIntakeService` (photos on private disk until accepted).
+- WhatsApp (`app/WhatsApp`): `WhatsAppManager` drivers fonnte/wablas/log (config `whatsapp.driver`, empty = off);
+  notification channel `whatsapp` (`toWhatsApp()` + `routeNotificationForWhatsapp()`, opt-out flag
+  `whatsapp_notifications` on users/consignors). Consignors are `Notifiable` (`ConsignorSettlementNotification`).
+- Security: Turnstile via `VerifyTurnstile` (route-name list), `FraudDetector` + `ScanLotForFraud` job.
+- Notifications (`app/Notifications`) extend `AuctionNotification` (mail + database [+ broadcast] [+ whatsapp], queued after commit) —
   production needs `php artisan queue:work`. PDFs via `DocumentService` (dompdf, views in `resources/views/pdf`),
   Excel via `app/Exports` (maatwebsite/excel 4). Consignor portal = temporary signed URL + revocable `portal_nonce`.
 

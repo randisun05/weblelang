@@ -68,4 +68,12 @@ return [
 
     // Interval polling halaman lot (detik) bila websocket tidak dipakai.
     'poll_seconds' => 4,
+
+    // Watermark teks pada foto barang publik (mencegah foto dicomot untuk penipuan di marketplace lain).
+    // Hanya berlaku untuk foto yang diunggah setelah diaktifkan.
+    'watermark' => [
+        'enabled' => (bool) env('WATERMARK_ENABLED', true),
+        'text' => env('WATERMARK_TEXT'), // kosong = nama domain situs (APP_URL)
+        'opacity' => 0.55,
+    ],
 ];

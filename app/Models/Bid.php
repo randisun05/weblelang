@@ -13,9 +13,9 @@ class Bid extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['lot_id', 'user_id', 'amount', 'is_auto', 'ip', 'user_agent', 'prev_hash', 'hash', 'created_at'];
+    protected $fillable = ['lot_id', 'user_id', 'amount', 'is_auto', 'ip', 'user_agent', 'device_id', 'prev_hash', 'hash', 'created_at'];
 
-    protected $hidden = ['ip', 'user_agent'];
+    protected $hidden = ['ip', 'user_agent', 'device_id'];
 
     protected function casts(): array
     {

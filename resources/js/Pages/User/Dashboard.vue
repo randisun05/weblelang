@@ -11,6 +11,13 @@ defineProps({ active: Array, won: Array, watchlist: Array, unpaidInvoices: Numbe
 <template>
     <Head title="Akun Saya" />
     <AccountLayout :title="`Halo, ${$page.props.auth.user.name}`">
+        <div v-if="!$page.props.auth.user.email_verified" class="card mb-4 flex flex-wrap items-center justify-between gap-4 border-sky-300 bg-sky-50 p-5">
+            <div>
+                <p class="font-semibold text-sky-900">Verifikasi email Anda</p>
+                <p class="text-sm text-sky-800">Klik tautan yang kami kirim ke {{ $page.props.auth.user.email }} untuk dapat menawar.</p>
+            </div>
+            <Link :href="route('verification.notice')" class="btn-dark btn-sm shrink-0">Kirim ulang</Link>
+        </div>
         <div class="grid gap-4 md:grid-cols-2">
             <div v-if="kyc.value !== 'verified'" class="card flex items-center justify-between gap-4 border-amber-300 bg-amber-50 p-5">
                 <div>

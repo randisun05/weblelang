@@ -67,6 +67,9 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
+    // Paksa semua URL memakai https (disarankan di production).
+    'force_https' => (bool) env('APP_FORCE_HTTPS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

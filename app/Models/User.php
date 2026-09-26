@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\KycStatus;
 use App\Enums\Role;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'whatsapp_notifications',
         'nik',
         'address',
         'bank_name',
@@ -59,6 +61,8 @@ class User extends Authenticatable
             'kyc_verified_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'is_blocked' => 'boolean',
+            'whatsapp_notifications' => 'boolean',
+            'terms_accepted_at' => 'datetime',
             'nik' => 'encrypted',
             'bank_account' => 'encrypted',
         ];
@@ -82,6 +86,17 @@ class User extends Authenticatable
     public function registrations(): HasMany
     {
         return $this->hasMany(AuctionRegistration::class);
+    }
+
+    /** Pengguna belum menyetujui versi S&K/Kebijakan Privasi yang berlaku saat ini. */
+    public function needsTermsAcceptance(): bool
+    {
+        return ! $this->isBackoffice() && $this->terms_version !== config('legal.terms_version');
+    }
+
+    public function acceptTerms(): void
+    {
+        $this->forceFill(['terms_version' => config('legal.terms_version'), 'terms_accepted_at' => now()])->save();
     }
 
     public function hasBankAccount(): bool
@@ -114,5 +129,11 @@ class User extends Authenticatable
     public function maskedName(): string
     {
         return Str::substr($this->name, 0, 3).'***'.str_pad((string) ($this->id % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    /** Nomor tujuan channel `whatsapp`; null = pengguna mematikan notifikasi WA atau tidak punya nomor. */
+    public function routeNotificationForWhatsapp(): ?string
+    {
+        return $this->whatsapp_notifications && ! $this->is_blocked ? $this->phone : null;
     }
 }

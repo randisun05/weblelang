@@ -6,7 +6,10 @@ import StatusBadge from '@/Components/StatusBadge.vue';
 
 const props = defineProps({ profile: Object, banks: Object });
 
-const form = useForm({ name: props.profile.name, phone: props.profile.phone ?? '', address: props.profile.address ?? '' });
+const form = useForm({
+    name: props.profile.name, phone: props.profile.phone ?? '', address: props.profile.address ?? '',
+    whatsapp_notifications: props.profile.whatsapp_notifications ?? true,
+});
 const kyc = useForm({ nik: '', address: props.profile.address ?? '', ktp: null });
 const bank = useForm({ bank_name: props.profile.bank_name ?? '', bank_account: '', bank_holder: props.profile.bank_holder ?? props.profile.name });
 const pw = useForm({ current_password: '', password: '', password_confirmation: '' });
@@ -30,6 +33,10 @@ const submitPw = () => pw.put(route('user-password.update'), {
                     <Field label="Nama lengkap" :error="form.errors.name"><input v-model="form.name" class="input" /></Field>
                     <Field label="Nomor HP" :error="form.errors.phone"><input v-model="form.phone" class="input" /></Field>
                     <Field label="Alamat" :error="form.errors.address"><textarea v-model="form.address" rows="3" class="input" /></Field>
+                    <label class="flex items-start gap-2 text-sm text-stone-700">
+                        <input v-model="form.whatsapp_notifications" type="checkbox" class="mt-0.5 rounded" />
+                        <span>Kirim notifikasi penting ke WhatsApp (penawaran terlampaui, menang lelang, tagihan, jaminan).</span>
+                    </label>
                     <button class="btn-dark" :disabled="form.processing">Simpan</button>
                 </form>
             </section>
@@ -85,6 +92,15 @@ const submitPw = () => pw.put(route('user-password.update'), {
                     <div class="flex items-end"><button class="btn-dark w-full" :disabled="bank.processing">Simpan rekening</button></div>
                 </form>
                 <p class="mt-2 text-xs text-stone-500">🔒 Nomor rekening disimpan terenkripsi.</p>
+            </section>
+
+            <section class="card flex flex-wrap items-center justify-between gap-4 p-6 lg:col-span-2">
+                <div>
+                    <h2 class="text-lg font-bold text-ink">Data pribadi Anda</h2>
+                    <p class="text-sm text-stone-500">Unduh salinan seluruh data Anda (UU PDP). Permintaan penghapusan data dapat diajukan melalui
+                        <a :href="route('legal.privacy') + '#pasal-6'" class="link">Kebijakan Privasi</a>.</p>
+                </div>
+                <a :href="route('user.profile.export')" class="btn-outline">⬇ Unduh data saya (JSON)</a>
             </section>
 
             <section class="card p-6 lg:col-span-2">

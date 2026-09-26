@@ -1,15 +1,33 @@
 <script setup>
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import Swal from 'sweetalert2';
 import FlashMessages from '@/Components/FlashMessages.vue';
+import TermsConsent from '@/Components/TermsConsent.vue';
+import { onUserNotification } from '@/lib/realtime';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const open = ref(false);
 
+// Notifikasi real-time (mis. "Anda terlampaui"): tampilkan toast & perbarui lonceng.
+let stopNotifications;
+onMounted(() => {
+    if (!user.value) return;
+    stopNotifications = onUserNotification(user.value.id, (n) => {
+        page.props.auth.unread_notifications = (page.props.auth.unread_notifications || 0) + 1;
+        Swal.fire({
+            toast: true, position: 'top-end', timer: 6000, showConfirmButton: false, icon: 'info',
+            title: `${n.icon ?? '🔔'} ${n.title ?? 'Notifikasi baru'}`, text: n.body ?? '',
+        });
+    });
+});
+onBeforeUnmount(() => stopNotifications?.());
+
 const nav = [
     { label: 'Beranda', route: 'home' },
     { label: 'Jadwal Lelang', route: 'auctions.index' },
+    { label: 'Titip Barang', route: 'consign.create' },
     { label: 'Cara Kerja', route: 'how-it-works' },
 ];
 
@@ -19,6 +37,7 @@ const logout = () => router.post(route('logout'));
 <template>
     <div class="flex min-h-screen flex-col">
         <FlashMessages />
+        <TermsConsent />
         <header class="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur">
             <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
                 <Link :href="route('home')" class="flex items-center gap-2">
@@ -89,7 +108,9 @@ const logout = () => router.post(route('logout'));
                     <p class="mb-2 font-semibold text-white">Jelajahi</p>
                     <Link :href="route('auctions.index')" class="block py-1 hover:text-white">Jadwal lelang</Link>
                     <Link :href="route('how-it-works')" class="block py-1 hover:text-white">Cara ikut lelang</Link>
-                    <Link :href="route('how-it-works') + '#titip'" class="block py-1 hover:text-white">Titip barang untuk dilelang</Link>
+                    <Link :href="route('consign.create')" class="block py-1 hover:text-white">Titip barang untuk dilelang</Link>
+                    <Link :href="route('legal.terms')" class="block py-1 hover:text-white">Syarat & Ketentuan</Link>
+                    <Link :href="route('legal.privacy')" class="block py-1 hover:text-white">Kebijakan Privasi</Link>
                 </div>
                 <div class="text-sm">
                     <p class="mb-2 font-semibold text-white">Keamanan</p>
