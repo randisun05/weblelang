@@ -27,6 +27,7 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
+                'whatsapp_notifications' => $user->whatsapp_notifications,
                 'address' => $user->address,
                 'nik_masked' => $user->nik ? substr($user->nik, 0, 4).'********'.substr($user->nik, -4) : null,
                 'has_ktp' => (bool) $user->ktp_path,
@@ -46,6 +47,7 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'regex:/^(\+62|62|0)8[0-9]{7,12}$/'],
             'address' => ['nullable', 'string', 'max:500'],
+            'whatsapp_notifications' => ['boolean'],
         ]);
 
         $request->user()->update($data);

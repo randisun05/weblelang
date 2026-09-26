@@ -98,6 +98,18 @@ bulanan 4 bulan, tahunan 2 tahun (ubah di `config/backup.php`).
 Uji manual: `php artisan backup:run` lalu `php artisan backup:list`.
 **Uji restore minimal sekali** sebelum go-live: ekstrak arsip dengan kata sandinya, impor `db-dumps/*.sql` ke database kosong.
 
+## Notifikasi WhatsApp (opsional)
+
+1. Daftar di penyedia (mis. [Fonnte](https://fonnte.com) atau [Wablas](https://wablas.com)), sambungkan nomor
+   WhatsApp khusus bisnis, lalu salin token.
+2. Isi `.env`: `WHATSAPP_DRIVER=fonnte` + `FONNTE_TOKEN`, atau `WHATSAPP_DRIVER=wablas` + `WABLAS_TOKEN`,
+   `WABLAS_SECRET_KEY`, `WABLAS_BASE_URL` (alamat server akun Anda, mis. `https://tegal.wablas.com`).
+3. Uji: `php artisan whatsapp:test 08xxxxxxxxxx`.
+
+Pesan dikirim lewat antrean (butuh queue worker). Bila penyedia gagal, job dicoba ulang dan bila tetap gagal
+tercatat di `failed_jobs`, tanpa memengaruhi email maupun notifikasi lonceng. Gunakan nomor khusus dan jangan
+dipakai untuk broadcast promosi, supaya tidak diblokir WhatsApp.
+
 ## Checklist go-live
 
 - [ ] Model usaha & perizinan lelang dikonsultasikan dengan ahli hukum; `LEGAL_*` diisi; Syarat & Ketentuan
@@ -112,3 +124,4 @@ Uji manual: `php artisan backup:run` lalu `php artisan backup:list`.
 - [ ] `APP_URL` benar (dipakai untuk link sitemap, Open Graph, dan teks watermark); daftarkan
       `https://domainanda/sitemap.xml` di Google Search Console.
 - [ ] Uji preview link lot di WhatsApp / Facebook Sharing Debugger.
+- [ ] (Bila WhatsApp dipakai) `php artisan whatsapp:test` berhasil ke nomor staf.

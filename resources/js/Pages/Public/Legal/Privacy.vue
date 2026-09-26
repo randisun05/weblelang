@@ -55,6 +55,7 @@ const op = props.operator;
                 <ul>
                     <li>Payment gateway (mis. Midtrans atau Xendit) untuk memproses pembayaran dan transfer dana.</li>
                     <li>Penyedia infrastruktur (hosting, email) yang terikat kewajiban kerahasiaan.</li>
+                    <li>Penyedia layanan pesan WhatsApp, hanya nomor HP dan isi notifikasi transaksi. Notifikasi WhatsApp dapat dimatikan kapan saja di halaman profil.</li>
                     <li v-if="op.auction_house">{{ op.auction_house }} selaku balai lelang, untuk keperluan penyelenggaraan dan pelaporan lelang.</li>
                     <li>Otoritas yang berwenang bila diwajibkan peraturan perundang-undangan.</li>
                 </ul>

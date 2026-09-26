@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'phone',
+        'whatsapp_notifications',
         'nik',
         'address',
         'bank_name',
@@ -60,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'kyc_verified_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
             'is_blocked' => 'boolean',
+            'whatsapp_notifications' => 'boolean',
             'terms_accepted_at' => 'datetime',
             'nik' => 'encrypted',
             'bank_account' => 'encrypted',
@@ -127,5 +129,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function maskedName(): string
     {
         return Str::substr($this->name, 0, 3).'***'.str_pad((string) ($this->id % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    /** Nomor tujuan channel `whatsapp`; null = pengguna mematikan notifikasi WA atau tidak punya nomor. */
+    public function routeNotificationForWhatsapp(): ?string
+    {
+        return $this->whatsapp_notifications && ! $this->is_blocked ? $this->phone : null;
     }
 }

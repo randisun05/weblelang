@@ -25,7 +25,7 @@ class ConsignmentIntakeService
 
         $request = ConsignmentRequest::create($data + ['photos' => $paths, 'user_id' => $user?->id, 'ip' => $ip]);
 
-        Notification::route('mail', $request->email)->notify(new ConsignmentRequestNotification($request));
+        $this->notify($request, new ConsignmentRequestNotification($request));
 
         return $request;
     }
@@ -91,7 +91,7 @@ class ConsignmentIntakeService
             ])->save();
 
             AuditLogger::log('consignment_request.accepted', $request, ['item' => $item->code, 'consignor' => $consignor->code]);
-            Notification::route('mail', $request->email)->notify(new ConsignmentRequestNotification($request));
+            $this->notify($request, new ConsignmentRequestNotification($request));
 
             return $item;
         });
@@ -109,6 +109,11 @@ class ConsignmentIntakeService
         ])->save();
 
         AuditLogger::log('consignment_request.rejected', $request, ['reason' => $reason]);
-        Notification::route('mail', $request->email)->notify(new ConsignmentRequestNotification($request));
+        $this->notify($request, new ConsignmentRequestNotification($request));
+    }
+
+    private function notify(ConsignmentRequest $request, ConsignmentRequestNotification $notification): void
+    {
+        Notification::route('mail', $request->email)->route('whatsapp', $request->phone)->notify($notification);
     }
 }

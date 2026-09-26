@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Enums\ConsignmentRequestStatus;
 use App\Models\ConsignmentRequest;
+use App\WhatsApp\WhatsAppManager;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -22,7 +23,24 @@ class ConsignmentRequestNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return app(WhatsAppManager::class)->enabled() ? ['mail', 'whatsapp'] : ['mail'];
+    }
+
+    public function toWhatsApp(object $notifiable): string
+    {
+        $r = $this->request;
+
+        [$icon, $title, $body, $url] = match ($r->status) {
+            ConsignmentRequestStatus::Accepted => ['✅', "Pengajuan titip {$r->code} diterima",
+                "Halo {$r->name}, barang \"{$r->title}\" kami terima untuk dilelang. Tim kami akan menghubungi Anda untuk jadwal "
+                .($r->handover === 'jemput' ? 'penjemputan' : 'pengantaran').' dan pemeriksaan barang.', $r->statusUrl()],
+            ConsignmentRequestStatus::Rejected => ['🙏', "Pengajuan titip {$r->code}",
+                "Halo {$r->name}, mohon maaf barang \"{$r->title}\" belum dapat kami terima. Alasan: ".($r->reject_reason ?? '-'), null],
+            default => ['📦', "Pengajuan titip {$r->code} kami terima",
+                "Halo {$r->name}, pengajuan titip \"{$r->title}\" sudah kami terima dan akan ditinjau dalam 1–2 hari kerja.", $r->statusUrl()],
+        };
+
+        return AuctionNotification::whatsAppText($icon, $title, $body, $url);
     }
 
     public function toMail(object $notifiable): MailMessage

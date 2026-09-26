@@ -80,6 +80,9 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
   sebelum menawar, deteksi indikasi *shill bidding* (perangkat/IP sama, penitip ikut menawar) di menu **Kecurigaan**.
 - **SEO & berbagi**: meta tag + Open Graph dirender server (preview WhatsApp/Facebook), JSON-LD Product/Event,
   `sitemap.xml`, `robots.txt` (staging otomatis tidak terindeks), watermark teks pada foto barang.
+- **Notifikasi WhatsApp** (Fonnte / Wablas, mudah ditambah penyedia lain): peserta menerima kabar terlampaui, menang,
+  tagihan & jaminan; penitip menerima kabar barang terjual & dana ditransfer; calon penitip menerima status pengajuan.
+  Peserta bisa mematikannya di profil. Uji dengan `php artisan whatsapp:test 08xxxxxxxxxx`.
 - **Deploy**: Docker (FrankenPHP + HTTPS otomatis) atau VPS (Nginx + Supervisor), backup terenkripsi,
   `/health`, Sentry, `php artisan payments:check`. Lihat `docs/DEPLOY.md` dan `docs/UJI-SANDBOX.md`.
 

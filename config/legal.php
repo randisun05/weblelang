@@ -31,5 +31,5 @@ return [
     'pickup_days' => (int) env('LEGAL_PICKUP_DAYS', 7),
 
     'terms_version' => '2026-09-25',
-    'privacy_version' => '2026-09-25',
+    'privacy_version' => '2026-09-26',
 ];

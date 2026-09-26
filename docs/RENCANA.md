@@ -372,4 +372,5 @@ reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
 - Real-time Laravel Reverb (sinyal tanpa data harga; bid tertutup tidak disiarkan) + notifikasi broadcast.
 - Turnstile, verifikasi email wajib sebelum menawar, deteksi indikasi shill bidding.
 - SEO: meta/Open Graph server-side, JSON-LD Product/Event, sitemap.xml, robots.txt, watermark foto barang.
-- Total 126 tes otomatis.
+- Notifikasi WhatsApp multi-penyedia (Fonnte, Wablas) untuk peserta, penitip, dan calon penitip; bisa dimatikan per orang.
+- Total 135 tes otomatis.
