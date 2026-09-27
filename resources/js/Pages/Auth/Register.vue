@@ -2,9 +2,12 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import Field from '@/Components/Field.vue';
+import Turnstile from '@/Components/Turnstile.vue';
+import { ref } from 'vue';
 
-const form = useForm({ name: '', email: '', phone: '', password: '', password_confirmation: '', terms: false });
-const submit = () => form.post(route('register'), { onFinish: () => form.reset('password', 'password_confirmation') });
+const form = useForm({ name: '', email: '', phone: '', password: '', password_confirmation: '', terms: false, 'cf-turnstile-response': '' });
+const captcha = ref(null);
+const submit = () => form.post(route('register'), { onFinish: () => { form.reset('password', 'password_confirmation'); captcha.value?.reset(); } });
 </script>
 
 <template>
@@ -31,9 +34,11 @@ const submit = () => form.post(route('register'), { onFinish: () => form.reset('
             <Field :error="form.errors.terms">
                 <label class="flex items-start gap-2 text-sm text-stone-600">
                     <input v-model="form.terms" type="checkbox" class="mt-0.5 rounded" />
-                    <span>Saya menyetujui <Link :href="route('how-it-works')" class="link" target="_blank">syarat & ketentuan lelang</Link>, termasuk kewajiban membayar bila menang.</span>
+                    <span>Saya menyetujui <Link :href="route('legal.terms')" class="link" target="_blank">Syarat & Ketentuan</Link> dan
+                        <Link :href="route('legal.privacy')" class="link" target="_blank">Kebijakan Privasi</Link>, termasuk kewajiban membayar bila menang.</span>
                 </label>
             </Field>
+            <Turnstile ref="captcha" v-model="form['cf-turnstile-response']" :error="form.errors.captcha" />
             <button class="btn-primary w-full" :disabled="form.processing">Buat akun</button>
             <p class="text-center text-sm text-stone-500">Sudah punya akun? <Link :href="route('login')" class="link">Masuk</Link></p>
         </form>

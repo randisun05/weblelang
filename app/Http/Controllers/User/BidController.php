@@ -14,7 +14,7 @@ class BidController extends Controller
     public function buyNow(Request $request, Lot $lot, BidService $bids): RedirectResponse
     {
         try {
-            $lot = $bids->buyNow($lot, $request->user(), ['ip' => $request->ip(), 'user_agent' => $request->userAgent()]);
+            $lot = $bids->buyNow($lot, $request->user(), $this->meta($request));
         } catch (BidException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -31,10 +31,7 @@ class BidController extends Controller
         ]);
 
         try {
-            $bids->place($lot, $request->user(), (int) $data['amount'], isset($data['max_amount']) ? (int) $data['max_amount'] : null, [
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
+            $bids->place($lot, $request->user(), (int) $data['amount'], isset($data['max_amount']) ? (int) $data['max_amount'] : null, $this->meta($request));
         } catch (BidException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -49,5 +46,14 @@ class BidController extends Controller
         return $lot->leader_id === $request->user()->id
             ? back()->with('success', 'Penawaran diterima. Anda penawar tertinggi saat ini!')
             : back()->with('warning', 'Penawaran tercatat, namun langsung dilampaui auto-bid peserta lain. Coba tawar lebih tinggi.');
+    }
+
+    private function meta(Request $request): array
+    {
+        return [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'device_id' => $request->attributes->get('device_id'),
+        ];
     }
 }

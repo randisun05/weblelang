@@ -5,14 +5,28 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import LotImage from '@/Components/LotImage.vue';
 import { dateTime, money } from '@/lib/format';
+import { connected, onLotUpdated } from '@/lib/realtime';
 
 const props = defineProps({ auction: Object, lots: Array, current: Object });
 const busy = ref(false);
 
-// Penawaran online masuk terus; segarkan data konsol tiap 2 detik.
+// Penawaran online masuk terus: segarkan konsol saat ada event websocket, dan polling
+// tiap 2 detik sebagai cadangan (jauh lebih jarang bila websocket tersambung).
 let timer;
-onMounted(() => (timer = setInterval(() => !busy.value && router.reload({ only: ['current', 'lots'] }), 2000)));
-onBeforeUnmount(() => clearInterval(timer));
+let stopRealtime;
+let ticks = 0;
+const reload = () => !busy.value && router.reload({ only: ['current', 'lots'] });
+onMounted(() => {
+    stopRealtime = onLotUpdated(`auctions.${props.auction.id}`, reload);
+    timer = setInterval(() => {
+        ticks++;
+        if (!connected.value || ticks % 8 === 0) reload();
+    }, 2000);
+});
+onBeforeUnmount(() => {
+    clearInterval(timer);
+    stopRealtime?.();
+});
 
 const act = (name, lot) => {
     busy.value = true;

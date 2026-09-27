@@ -93,7 +93,7 @@ class ConsignorController extends Controller
     {
         return Inertia::render('Admin/Consignors/Form', [
             'consignor' => $consignor->only([
-                'id', 'name', 'phone', 'email', 'address', 'bank_name', 'bank_holder', 'commission_rate', 'notes',
+                'id', 'name', 'phone', 'whatsapp_notifications', 'email', 'address', 'bank_name', 'bank_holder', 'commission_rate', 'notes',
             ]) + [
                 'has_nik' => (bool) $consignor->nik,
                 'bank_account_masked' => $consignor->maskedBankAccount(),
@@ -137,6 +137,7 @@ class ConsignorController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
+            'whatsapp_notifications' => ['boolean'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],
             'nik' => ['nullable', 'digits:16'],

@@ -27,6 +27,8 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'role' => Role::Bidder,
             'kyc_status' => KycStatus::Unsubmitted,
+            'terms_version' => config('legal.terms_version'),
+            'terms_accepted_at' => now(),
         ];
     }
 

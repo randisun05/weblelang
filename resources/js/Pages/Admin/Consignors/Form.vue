@@ -7,7 +7,7 @@ const props = defineProps({ consignor: Object, defaultCommission: Number, banks:
 const c = props.consignor;
 
 const form = useForm({
-    name: c?.name ?? '', phone: c?.phone ?? '', email: c?.email ?? '', address: c?.address ?? '', nik: '',
+    name: c?.name ?? '', phone: c?.phone ?? '', whatsapp_notifications: c?.whatsapp_notifications ?? true, email: c?.email ?? '', address: c?.address ?? '', nik: '',
     bank_name: c?.bank_name ?? '', bank_account: '', bank_holder: c?.bank_holder ?? '',
     commission_rate: c?.commission_rate ?? props.defaultCommission, notes: c?.notes ?? '',
 });
@@ -29,6 +29,10 @@ const submit = () => (c ? form.put(route('admin.consignors.update', c.id)) : for
                     <input v-model="form.nik" inputmode="numeric" maxlength="16" class="input font-mono" />
                 </Field>
                 <Field class="md:col-span-2" label="Alamat" :error="form.errors.address"><textarea v-model="form.address" rows="2" class="input" /></Field>
+                <label class="flex items-center gap-2 text-sm text-stone-700 md:col-span-2">
+                    <input v-model="form.whatsapp_notifications" type="checkbox" class="rounded" />
+                    Kirim kabar ke WhatsApp penitip (barang terjual & dana ditransfer)
+                </label>
             </div>
             <div class="border-t border-stone-100 pt-6">
                 <h3 class="mb-3 font-semibold text-ink">Rekening pencairan hasil lelang</h3>

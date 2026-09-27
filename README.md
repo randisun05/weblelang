@@ -69,6 +69,25 @@ Midtrans Snap, SweetAlert2, plus Tailwind CSS v4.
 | `POST /payments/webhook/xendit` | Callback invoice (header `x-callback-token`) |
 | `POST /payouts/webhook/xendit` | Callback disbursement |
 
+### Go-live & pertumbuhan
+- **Legal**: halaman Syarat & Ketentuan dan Kebijakan Privasi (UU PDP), persetujuan tercatat per versi,
+  unduh data pribadi dari profil. Teks wajib ditinjau ahli hukum sebelum go-live.
+- **Titip barang online** (`/titip-barang`): calon penitip mengunggah foto & data barang; admin meninjau di
+  menu **Pengajuan Titip** lalu menerima (penitip + barang dibuat otomatis) atau menolak dengan alasan.
+- **Real-time** dengan Laravel Reverb (opsional): harga, panggilan juru lelang, dan notifikasi langsung
+  masuk ke browser; polling tetap menjadi cadangan.
+- **Keamanan**: Cloudflare Turnstile di login/registrasi/lupa sandi/form titip, verifikasi email wajib
+  sebelum menawar, deteksi indikasi *shill bidding* (perangkat/IP sama, penitip ikut menawar) di menu **Kecurigaan**.
+- **SEO & berbagi**: meta tag + Open Graph dirender server (preview WhatsApp/Facebook), JSON-LD Product/Event,
+  `sitemap.xml`, `robots.txt` (staging otomatis tidak terindeks), watermark teks pada foto barang.
+- **Notifikasi WhatsApp** (Fonnte / Wablas, mudah ditambah penyedia lain): peserta menerima kabar terlampaui, menang,
+  tagihan & jaminan; penitip menerima kabar barang terjual & dana ditransfer; calon penitip menerima status pengajuan.
+  Peserta bisa mematikannya di profil. Uji dengan `php artisan whatsapp:test 08xxxxxxxxxx`.
+- **Deploy**: Docker (FrankenPHP + HTTPS otomatis) atau VPS (Nginx + Supervisor), backup terenkripsi,
+  `/health`, Sentry, `php artisan payments:check`, dan deploy otomatis dari GitHub Actions setelah CI hijau. Lihat `docs/DEPLOY.md` dan `docs/UJI-SANDBOX.md`.
+
+> Langkah yang masih tertunda sebelum go-live: lihat `docs/TERTUNDA.md`.
+
 ## Menjalankan secara lokal
 
 ```bash

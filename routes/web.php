@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Public;
 use App\Http\Controllers\User;
 use Illuminate\Support\Facades\Route;
@@ -11,7 +12,16 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', Public\HomeController::class)->name('home');
+Route::get('/sitemap.xml', [Public\SeoController::class, 'sitemap'])->name('seo.sitemap');
+Route::get('/robots.txt', [Public\SeoController::class, 'robots'])->name('seo.robots');
+Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
 Route::get('/cara-kerja', [Public\PageController::class, 'howItWorks'])->name('how-it-works');
+Route::get('/titip-barang', [Public\ConsignmentRequestController::class, 'create'])->name('consign.create');
+Route::post('/titip-barang', [Public\ConsignmentRequestController::class, 'store'])->middleware('throttle:consign')->name('consign.store');
+Route::get('/titip-barang/status/{consignmentRequest:code}', [Public\ConsignmentRequestController::class, 'status'])
+    ->middleware('signed')->name('consign.status');
+Route::get('/syarat-ketentuan', [Public\LegalController::class, 'terms'])->name('legal.terms');
+Route::get('/kebijakan-privasi', [Public\LegalController::class, 'privacy'])->name('legal.privacy');
 Route::get('/lelang', [Public\AuctionController::class, 'index'])->name('auctions.index');
 Route::get('/lelang/{auction:slug}', [Public\AuctionController::class, 'show'])->name('auctions.show');
 Route::get('/lot/{lot}', [Public\LotController::class, 'show'])->name('lots.show');
@@ -41,18 +51,21 @@ Route::middleware('auth')->group(function () {
     Route::post('/lelang/{auction:slug}/daftar', [User\AuctionRegistrationController::class, 'store'])
         ->middleware('throttle:uploads')->name('auctions.register');
     Route::post('/lelang/{auction:slug}/bayar-jaminan', [User\PaymentController::class, 'payDeposit'])
-        ->middleware('throttle:10,1')->name('auctions.deposit.pay');
+        ->middleware(['verified', 'throttle:10,1'])->name('auctions.deposit.pay');
 
     Route::get('/pembayaran/{payment:reference}', [User\PaymentController::class, 'show'])->name('payments.show');
     Route::get('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulator'])->name('payments.simulator');
     Route::post('/pembayaran/{payment:reference}/simulator', [User\PaymentController::class, 'simulate'])->name('payments.simulate');
 
+    Route::post('/persetujuan', [Public\LegalController::class, 'accept'])->name('legal.accept');
+
     Route::prefix('akun')->name('user.')->group(function () {
+        Route::get('/profil/unduh-data', [User\ProfileController::class, 'export'])->middleware('throttle:5,1')->name('profile.export');
         Route::get('/', User\DashboardController::class)->name('dashboard');
         Route::get('/profil', [User\ProfileController::class, 'edit'])->name('profile');
         Route::put('/profil', [User\ProfileController::class, 'update'])->name('profile.update');
         Route::put('/profil/rekening', [User\ProfileController::class, 'updateBank'])->name('profile.bank');
-        Route::post('/profil/kyc', [User\ProfileController::class, 'submitKyc'])->middleware('throttle:uploads')->name('profile.kyc');
+        Route::post('/profil/kyc', [User\ProfileController::class, 'submitKyc'])->middleware(['verified', 'throttle:uploads'])->name('profile.kyc');
 
         Route::get('/notifikasi', [User\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifikasi/baca-semua', [User\NotificationController::class, 'readAll'])->name('notifications.read-all');
@@ -77,6 +90,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
 
     // Operasional gudang: staf, admin, super admin.
     Route::post('/penitip/{consignor}/reset-portal', [Admin\ConsignorController::class, 'resetPortal'])->name('consignors.reset-portal');
+    Route::get('/pengajuan-titip', [Admin\ConsignmentRequestController::class, 'index'])->name('consign-requests.index');
+    Route::get('/pengajuan-titip/{consignmentRequest}', [Admin\ConsignmentRequestController::class, 'show'])->name('consign-requests.show');
+    Route::get('/pengajuan-titip/{consignmentRequest}/foto/{index}', [Admin\ConsignmentRequestController::class, 'photo'])->whereNumber('index')->name('consign-requests.photo');
+    Route::post('/pengajuan-titip/{consignmentRequest}/tinjau', [Admin\ConsignmentRequestController::class, 'reviewing'])->name('consign-requests.reviewing');
+    Route::post('/pengajuan-titip/{consignmentRequest}/terima', [Admin\ConsignmentRequestController::class, 'accept'])->name('consign-requests.accept');
+    Route::post('/pengajuan-titip/{consignmentRequest}/tolak', [Admin\ConsignmentRequestController::class, 'reject'])->name('consign-requests.reject');
+
     Route::resource('penitip', Admin\ConsignorController::class)->names('consignors')->parameters(['penitip' => 'consignor']);
     Route::resource('barang', Admin\ItemController::class)->names('items')->parameters(['barang' => 'item']);
     Route::post('/barang/{item}/status', [Admin\ItemController::class, 'transition'])->name('items.transition');
@@ -105,6 +125,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:super_admin,ad
         Route::post('/pendaftaran/{registration}', [Admin\RegistrationController::class, 'decide'])->name('registrations.decide');
         Route::post('/pendaftaran/{registration}/jaminan', [Admin\RegistrationController::class, 'settleDeposit'])->name('registrations.deposit');
         Route::get('/pendaftaran/{registration}/bukti', [Admin\RegistrationController::class, 'proof'])->name('registrations.proof');
+
+        Route::get('/kecurigaan', [Admin\FraudFlagController::class, 'index'])->name('fraud.index');
+        Route::post('/kecurigaan/{flag}', [Admin\FraudFlagController::class, 'review'])->name('fraud.review');
 
         Route::get('/peserta', [Admin\BidderController::class, 'index'])->name('bidders.index');
         Route::get('/peserta/{user}', [Admin\BidderController::class, 'show'])->name('bidders.show');

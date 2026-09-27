@@ -1,0 +1,3 @@
+# Tambahkan dengan: crontab -u www-data deploy/crontab   (atau salin baris di bawah ke `crontab -e -u www-data`)
+# Scheduler Laravel: buka/tutup lot, pengingat, invoice kedaluwarsa, refund jaminan, heartbeat, backup harian.
+* * * * * cd /var/www/weblelang/current && php artisan schedule:run >> /dev/null 2>&1

@@ -41,14 +41,17 @@ class CreateNewUser implements CreatesNewUsers
             'terms' => ['accepted'],
         ], [
             'phone.regex' => 'Nomor HP harus nomor Indonesia yang valid, mis. 081234567890.',
-            'terms.accepted' => 'Anda harus menyetujui syarat & ketentuan lelang.',
+            'terms.accepted' => 'Anda harus menyetujui Syarat & Ketentuan dan Kebijakan Privasi.',
         ])->validate();
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'phone' => $input['phone'],
             'password' => Hash::make($input['password']),
         ]);
+        $user->acceptTerms();
+
+        return $user;
     }
 }

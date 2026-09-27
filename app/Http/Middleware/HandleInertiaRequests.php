@@ -16,6 +16,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             'app' => [
                 'name' => config('app.name'),
+                'turnstile_site_key' => config('services.turnstile.secret_key') ? config('services.turnstile.site_key') : null,
             ],
             // Flash global (sukses/error/info/warning) seperti di web-aspro.
             'session' => [
@@ -35,6 +36,8 @@ class HandleInertiaRequests extends Middleware
                     'is_backoffice' => $user->isBackoffice(),
                     'kyc_status' => $user->kyc_status->value,
                     'two_factor_enabled' => ! is_null($user->two_factor_confirmed_at),
+                    'needs_terms' => $user->needsTermsAcceptance(),
+                    'email_verified' => $user->hasVerifiedEmail(),
                 ] : null,
                 'unread_notifications' => fn () => $user?->unreadNotifications()->count() ?? 0,
             ],

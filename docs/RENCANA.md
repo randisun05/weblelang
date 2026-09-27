@@ -171,7 +171,7 @@ app/
 ├── Services/SettlementService.php            # hitung komisi → dana bersih penitip
 ├── Services/MidtransService.php              # pola sama dgn web-aspro (verifySignature)
 ├── Services/AuditLogger.php
-├── Events/BidPlaced.php                      # ShouldBroadcast (Reverb/Pusher opsional)
+├── Events/LotUpdated.php                     # sinyal Reverb: bid/panggilan/buka/tutup (tanpa data harga)
 └── Console: auctions:tick (dijadwalkan tiap menit)
 resources/js/
 ├── Layouts/{Public,User,Admin}.vue
@@ -180,7 +180,7 @@ resources/js/
 config/auction.php                            # semua aturan bisnis yang bisa diubah
 ```
 
-**Real-time**: bid menyiarkan event `BidPlaced` (siap untuk Laravel Reverb). Tanpa server websocket,
+**Real-time**: setiap perubahan lot menyiarkan event `LotUpdated` lewat Laravel Reverb. Tanpa server websocket,
 halaman lot melakukan *polling* ringan ke endpoint JSON `/lot/{lot}/state` setiap 3–5 detik —
 jadi tetap jalan di shared hosting seperti web-aspro.
 
@@ -324,7 +324,7 @@ Catatan penyesuaian dari rencana:
 - Tabel `settings` diganti `config/auction.php` + `.env` (lebih sederhana; tabel settings dipindah ke Fase 2
   bila admin perlu mengubah aturan dari UI).
 - Kolom atribut dinamis barang bernama `specs` (menghindari bentrok dengan properti internal Eloquent).
-- Real-time memakai polling ringan + event `BidPlaced` yang siap disiarkan (aktifkan Reverb di Fase 2).
+- Real-time memakai Laravel Reverb (`LotUpdated` + notifikasi broadcast), dengan polling sebagai cadangan.
 - Tes otomatis: 41 tes (mesin bid, proxy, anti-sniping, penutupan, invoice/settlement, otorisasi,
   webhook Midtrans, alur admin end-to-end).
 
@@ -361,3 +361,17 @@ Catatan penyesuaian dari rencana:
 **Sisa Fase 2:** notifikasi WhatsApp (butuh penyedia WA API), Laravel Reverb (websocket — mempercepat lelang live),
 reCAPTCHA/Turnstile, deteksi *shill bidding* lanjutan.
 **Fase 3:** buy now, live auction dengan juru lelang, PWA, multi-tenant, analitik harga.
+
+**Persiapan go-live & fitur pertumbuhan (sudah dikerjakan):**
+
+- Legal: S&K + Kebijakan Privasi (UU PDP), persetujuan tercatat per versi, ekspor data pribadi.
+- `php artisan payments:check` + panduan uji sandbox (`docs/UJI-SANDBOX.md`).
+- Paket deploy: Docker (FrankenPHP, HTTPS otomatis) & VPS (Nginx + Supervisor), backup terenkripsi terjadwal,
+  `/health` + heartbeat queue/scheduler, Sentry (`docs/DEPLOY.md`).
+- Form titip barang online + meja tinjau admin (terima → penitip & barang dibuat otomatis).
+- Real-time Laravel Reverb (sinyal tanpa data harga; bid tertutup tidak disiarkan) + notifikasi broadcast.
+- Turnstile, verifikasi email wajib sebelum menawar, deteksi indikasi shill bidding.
+- SEO: meta/Open Graph server-side, JSON-LD Product/Event, sitemap.xml, robots.txt, watermark foto barang.
+- Notifikasi WhatsApp multi-penyedia (Fonnte, Wablas) untuk peserta, penitip, dan calon penitip; bisa dimatikan per orang.
+- Deploy otomatis GitHub Actions (SSH, mode VPS atau Docker, cek `/health`).
+- Total 135 tes otomatis.

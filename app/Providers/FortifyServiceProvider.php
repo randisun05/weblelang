@@ -48,6 +48,7 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
         Fortify::twoFactorChallengeView(fn () => Inertia::render('Auth/TwoFactorChallenge'));
         Fortify::confirmPasswordView(fn () => Inertia::render('Auth/ConfirmPassword'));
+        Fortify::verifyEmailView(fn () => Inertia::render('Auth/VerifyEmail'));
 
         // Akun yang diblokir tidak bisa login.
         Fortify::authenticateUsing(function (Request $request) {

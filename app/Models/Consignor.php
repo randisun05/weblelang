@@ -7,16 +7,17 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /** Penitip / pemilik barang. */
 class Consignor extends Model
 {
-    use HasFactory, HasSequentialCode, SoftDeletes;
+    use HasFactory, HasSequentialCode, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'name', 'phone', 'email', 'address', 'nik',
+        'name', 'phone', 'whatsapp_notifications', 'email', 'address', 'nik',
         'bank_name', 'bank_account', 'bank_holder', 'commission_rate', 'notes',
     ];
 
@@ -28,6 +29,7 @@ class Consignor extends Model
             'nik' => 'encrypted',
             'bank_account' => 'encrypted',
             'commission_rate' => 'float',
+            'whatsapp_notifications' => 'boolean',
         ];
     }
 
@@ -76,5 +78,15 @@ class Consignor extends Model
         }
 
         return str_repeat('*', max(0, strlen($this->bank_account) - 4)).substr($this->bank_account, -4);
+    }
+
+    public function routeNotificationForWhatsapp(): ?string
+    {
+        return $this->whatsapp_notifications ? $this->phone : null;
+    }
+
+    public function routeNotificationForMail(): ?string
+    {
+        return $this->email;
     }
 }

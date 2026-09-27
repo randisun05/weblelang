@@ -38,6 +38,13 @@ return [
             'report' => false,
         ],
 
+        // Arsip backup (terenkripsi, lihat BACKUP_ARCHIVE_PASSWORD). Tidak dapat diakses publik.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/backups'),
+            'throw' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

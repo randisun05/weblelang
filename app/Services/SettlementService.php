@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\SettlementStatus;
 use App\Models\Invoice;
 use App\Models\Settlement;
+use App\Notifications\ConsignorSettlementNotification;
 
 /** Menghitung dan mencatat penyetoran hasil lelang ke penitip. */
 class SettlementService
@@ -15,7 +16,7 @@ class SettlementService
         $rate = $item->effectiveCommissionRate();
         $commission = (int) round($invoice->hammer_price * $rate / 100);
 
-        return Settlement::firstOrCreate(
+        $settlement = Settlement::firstOrCreate(
             ['invoice_id' => $invoice->id],
             [
                 'consignor_id' => $item->consignor_id,
@@ -26,6 +27,12 @@ class SettlementService
                 'net_amount' => max(0, $invoice->hammer_price - $commission),
             ],
         );
+
+        if ($settlement->wasRecentlyCreated) {
+            $settlement->consignor?->notify(new ConsignorSettlementNotification($settlement, ConsignorSettlementNotification::SOLD));
+        }
+
+        return $settlement;
     }
 
     public function markPaid(Settlement $settlement, ?string $proofPath): void
@@ -37,5 +44,6 @@ class SettlementService
         ])->save();
 
         AuditLogger::log('settlement.paid', $settlement, ['net' => $settlement->net_amount]);
+        $settlement->consignor?->notify(new ConsignorSettlementNotification($settlement, ConsignorSettlementNotification::PAID));
     }
 }

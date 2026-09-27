@@ -11,6 +11,8 @@ use App\Enums\SettlementStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AuctionRegistration;
 use App\Models\Bid;
+use App\Models\ConsignmentRequest;
+use App\Models\FraudFlag;
 use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Lot;
@@ -33,6 +35,8 @@ class DashboardController extends Controller
                 'items_waiting' => Item::whereIn('status', [ItemStatus::Received, ItemStatus::Inspected])->count(),
                 'items_ready' => Item::where('status', ItemStatus::Approved)->count(),
                 'kyc_pending' => User::where('kyc_status', KycStatus::Pending)->count(),
+                'fraud_open' => FraudFlag::where('status', 'open')->count(),
+                'consign_requests_new' => ConsignmentRequest::whereIn('status', ['new', 'reviewing'])->count(),
                 'registrations_pending' => AuctionRegistration::where('status', RegistrationStatus::Pending)->count(),
                 'invoices_unpaid' => Invoice::where('status', InvoiceStatus::Unpaid)->count(),
                 'invoices_unpaid_total' => (int) Invoice::where('status', InvoiceStatus::Unpaid)->sum('total'),

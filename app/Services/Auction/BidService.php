@@ -5,7 +5,8 @@ namespace App\Services\Auction;
 use App\Enums\AuctionMethod;
 use App\Enums\LotStatus;
 use App\Enums\RegistrationStatus;
-use App\Events\BidPlaced;
+use App\Events\LotUpdated;
+use App\Jobs\ScanLotForFraud;
 use App\Models\AutoBid;
 use App\Models\Bid;
 use App\Models\Lot;
@@ -36,6 +37,9 @@ class BidService
             $now = Carbon::now();
 
             $this->assertCanBid($lot, $user, $now);
+
+            // Pindai indikasi shill bidding setelah transaksi selesai (antrean).
+            ScanLotForFraud::dispatch($lot->id);
 
             if ($lot->method() === AuctionMethod::Sealed) {
                 return $this->placeSealed($lot, $user, $amount, $maxAmount, $now, $meta);
@@ -112,6 +116,8 @@ class BidService
         $this->record($lot, $user->id, $amount, false, $now, $meta, updateLeader: false);
         $lot->save();
 
+        LotUpdated::dispatch($lot, LotUpdated::BID);
+
         return $lot;
     }
 
@@ -152,6 +158,10 @@ class BidService
 
         if ($user->isBackoffice()) {
             throw new BidException('Akun petugas tidak dapat mengikuti penawaran.');
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            throw new BidException('Verifikasi alamat email Anda terlebih dahulu (cek kotak masuk).');
         }
 
         if (config('auction.require_kyc') && ! $user->isKycVerified()) {
@@ -251,6 +261,7 @@ class BidService
             'is_auto' => $isAuto,
             'ip' => $meta['ip'] ?? null,
             'user_agent' => isset($meta['user_agent']) ? mb_substr($meta['user_agent'], 0, 255) : null,
+            'device_id' => $meta['device_id'] ?? null,
             'prev_hash' => $prevHash,
             'hash' => Bid::computeHash($prevHash, $lot->id, $userId, $amount, $timestamp),
             'created_at' => $now,
@@ -288,7 +299,7 @@ class BidService
 
         $lot->save();
 
-        BidPlaced::dispatch($lot);
+        LotUpdated::dispatch($lot, LotUpdated::BID);
 
         if ($previousLeaderId && $previousLeaderId !== $lot->leader_id) {
             User::find($previousLeaderId)?->notify(new OutbidNotification($lot, $lot->current_price));

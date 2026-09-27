@@ -6,6 +6,7 @@ use App\Enums\AuctionMethod;
 use App\Enums\AuctionStatus;
 use App\Enums\ItemStatus;
 use App\Enums\LotStatus;
+use App\Events\LotUpdated;
 use App\Models\Auction;
 use App\Models\Bid;
 use App\Models\Lot;
@@ -81,12 +82,19 @@ class LotCloser
             ->update(['status' => AuctionStatus::Live]);
 
         // Lot pada lelang live dibuka manual oleh juru lelang, bukan oleh jadwal.
-        return Lot::where('status', LotStatus::Scheduled)
+        $due = Lot::where('status', LotStatus::Scheduled)
             ->where('starts_at', '<=', $now)
             ->where('ends_at', '>', $now)
             ->whereHas('auction', fn ($q) => $q->whereIn('status', [AuctionStatus::Published, AuctionStatus::Live])
                 ->where('method', '!=', AuctionMethod::Live))
+            ->get();
+
+        $opened = Lot::whereKey($due->modelKeys())->where('status', LotStatus::Scheduled)
             ->update(['status' => LotStatus::Live, 'updated_at' => $now]);
+
+        $due->each(fn (Lot $lot) => LotUpdated::dispatch($lot, LotUpdated::OPENED));
+
+        return $opened;
     }
 
     public function closeDue(): int
@@ -144,6 +152,8 @@ class LotCloser
                 $lot->leader?->notify(new LotWonNotification($invoice));
             }
 
+            LotUpdated::dispatch($lot, LotUpdated::CLOSED);
+
             AuditLogger::log('lot.closed', $lot, [
                 'status' => $lot->status->value,
                 'price' => $lot->current_price,
@@ -197,6 +207,7 @@ class LotCloser
             ])->save();
 
             AuditLogger::log('lot.live_opened', $lot);
+            LotUpdated::dispatch($lot, LotUpdated::OPENED);
         });
     }
 
@@ -215,6 +226,7 @@ class LotCloser
 
             $lot->forceFill(['live_calls' => $lot->live_calls + 1, 'live_called_at' => now()])->save();
             AuditLogger::log('lot.live_call', $lot, ['call' => $lot->live_calls, 'price' => $lot->current_price]);
+            LotUpdated::dispatch($lot, LotUpdated::CALL);
 
             return $lot->live_calls;
         });
@@ -257,6 +269,7 @@ class LotCloser
             $lot->item->forceFill(['status' => ItemStatus::Approved])->save();
 
             AuditLogger::log('lot.cancelled', $lot, ['reason' => $reason]);
+            LotUpdated::dispatch($lot, LotUpdated::CANCELLED);
         });
     }
 

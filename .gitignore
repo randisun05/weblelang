@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Sertifikat CA lokal untuk build Docker di balik proxy
+/docker/certs/*.crt

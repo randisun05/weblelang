@@ -9,6 +9,7 @@ use App\Models\Auction;
 use App\Models\Category;
 use App\Models\Lot;
 use App\Support\Present;
+use App\Support\Seo;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,6 +18,7 @@ class HomeController extends Controller
     public function __invoke(): Response
     {
         $with = ['item.images', 'item.category'];
+        Seo::home();
 
         return Inertia::render('Public/Home', [
             'live' => Lot::publiclyVisible()->with($with)->where('status', LotStatus::Live)
